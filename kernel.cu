@@ -67,7 +67,7 @@ int runPandorasSearch(const unsigned int blocks, const unsigned int threads, con
 		//outStream << time << " " << info.start << " " << info.end << " " << std::endl;
 		std::cout << time << " " << info.start << " " << info.end << " " << std::endl;
 
-		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::OOH_BLEH, results.get());
+		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::BAD_IRONCLAD, results.get());
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "testSeedsWithCuda failed!");
 			return 1;

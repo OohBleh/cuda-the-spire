@@ -47,6 +47,23 @@ __forceinline__ __device__ uint16 random64Fast(uint64& seed0, uint64& seed1) {
 	return value;
 }
 
+__forceinline__ __device__ float randomFloatFast(uint64& seed0, uint64& seed1) {
+	
+	static constexpr double NORM_FLOAT = 5.9604644775390625E-8;
+
+	uint64 s1 = seed0;
+	uint64 s0 = seed1;
+	seed0 = s0;
+	s1 ^= s1 << 23;
+	seed1 = s1 ^ s0 ^ s1 >> 17 ^ s0 >> 26;
+	
+	uint64 x = (seed0 + seed1) >> 40;
+	double d = static_cast<double>(x) * NORM_FLOAT;
+	return static_cast<float>(d);
+}
+
+
+
 // ************************************************************** BEGIN Accurate Pandora Functions
 
 // the random call should be 1 more than on the cpu version
@@ -131,29 +148,76 @@ template<uint8 nCardRewards>
 __forceinline__ __device__ bool testBadNeow(const uint64 seed) {
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
+	
+	/*
+		[ ] THREE_CARDS = 0,
+		[ ] ONE_RANDOM_RARE_CARD,
+		[x] REMOVE_CARD,
+		[?] UPGRADE_CARD,
+		[ ] TRANSFORM_CARD,
+		[ ] RANDOM_COLORLESS,
+	*/
 	uint8 k = random64Fast<6>(seed0, seed1);
 	if (k != 2) {
 		return false;
 	}
+	
+	/*
+		[ ] THREE_SMALL_POTIONS,
+        [x] RANDOM_COMMON_RELIC,
+        [x] TEN_PERCENT_HP_BONUS,
+        [ ] THREE_ENEMY_KILL,
+        [x] HUNDRED_GOLD,
+	*/
 	k = random64Fast<5>(seed0, seed1);
-	if ((k != 1) && (k != 4)) {
+	//if ((k != 1) && (k != 4)) {
 	//if (k != 4) {
-	//if ((k == 0) || (k == 3)){
+	if ((k == 0) || (k == 3)){
 		return false;
 	}
 	k = random64Fast<4>(seed0, seed1);
-
+	/*
+		0 TEN_PERCENT_HP_LOSS:
+			0 [ ] RANDOM_COLORLESS_2,
+            1 [?] REMOVE_TWO,
+            2 [ ] ONE_RARE_RELIC,
+            3 [ ] THREE_RARE_CARDS,
+            4 [x] TWO_FIFTY_GOLD,
+            5 [ ] TRANSFORM_TWO_CARDS,
+		1 NO_GOLD:
+			0 [ ] RANDOM_COLORLESS_2,
+            1 [?] REMOVE_TWO,
+            2 [ ] ONE_RARE_RELIC,
+            3 [ ] THREE_RARE_CARDS,
+            4 [ ] TRANSFORM_TWO_CARDS,
+            5 [x] TWENTY_PERCENT_HP_BONUS,
+		2 CURSE:
+			0 [ ] RANDOM_COLORLESS_2,
+            1 [ ] ONE_RARE_RELIC,
+            2 [ ] THREE_RARE_CARDS,
+            3 [x] TWO_FIFTY_GOLD,
+            4 [ ] TRANSFORM_TWO_CARDS,
+            5 [x] TWENTY_PERCENT_HP_BONUS,
+		3 PERCENT_DAMAGE:
+			0 [ ] RANDOM_COLORLESS_2,
+			1 [?] REMOVE_TWO,
+			2 [ ] ONE_RARE_RELIC,
+			3 [ ] THREE_RARE_CARDS,
+			4 [x] TWO_FIFTY_GOLD,
+			5 [ ] TRANSFORM_TWO_CARDS,
+			6 [x] TWENTY_PERCENT_HP_BONUS,
+	*/
 	
 	uint8 l = (k == 3) ? random64Fast<7>(seed0, seed1) : random64Fast<6>(seed0, seed1);
+	l = (k == 1) ? (l - 1) : l;
 	l = (k == 2) ? (l + 1) : l;
 	//l = (k == 1) ? 0 : l;
-	return (l == 4) && (k != 1);
+	return (l == 4) || (l == 6);
 
 	//uint8 l = random64Fast<42>(seed0, seed1);
 	//l = (k == 2) ? (l + 1) : l;
 	//l = (k == 3) ? (l % 7) : (l % 6);
 	//return (l == 4) || (k == 1);
-
 
 	switch (k) {
 	case 0:
@@ -196,7 +260,7 @@ __forceinline__ __device__ bool testBadNeow(const uint64 seed) {
 
 
 template<uint8 nCardRewards>
-__forceinline__ __device__ bool testBadCardsFast(const uint64 seed) {
+__forceinline__ __device__ bool testBadSilentCardsFast(const uint64 seed) {
 
 	/*
 	uint64 seed0 = seed;
@@ -528,8 +592,72 @@ __forceinline__ __device__ bool testNoPotionsFast(const uint64 seed) {
 }
 
 
+/*
+
+combats with the left column filled in will be considered "bad"
+
+				Blue Slaver	0 -- 4/32
+4,5				Gremlin Gang	4/32 -- 6/32
+				Looter	6/32 -- 10/32
+10,11,12,13		Large Slime	10/32 -- 14/32
+14,15			Lots of Slimes	14/32 -- 16/32
+16,17,18		Exordium Thugs	16/32 -- 19/32
+19,20,21		Exordium Wildlife	19/32 -- 22/32
+				Red Slaver	22/32 -- 24/32
+24,25,26,27		3 Louse	24/32 -- 28/32
+				2 Fungi Beasts	28/32 -- 1
+
+bit vector of "bad" combats as a uint32 is 255851568
+the fights that cannot follow 2 louses are 251658240
+the fights that cannot follow 2 louses are 64512
+*/
+
+
+template<uint8 nQNodes>
+__forceinline__ __device__ bool testCombatQNodes(const uint64 seed) {
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+
+	for (uint8 i = 0; i < nQNodes; i++) {
+		float p = randomFloatFast(seed0, seed1);
+		if (p > 0.1f) {
+			return false;
+		}
+	}
+
+	uint8 c2 = ((uint8)4 * randomFloatFast(seed0, seed1));
+	while (c2 == 0) {
+		c2 = (uint8)(4 * randomFloatFast(seed0, seed1));
+	}
+
+	uint8 c3 = ((uint8)4 * randomFloatFast(seed0, seed1));
+	while ((c3 == 0) || (c3 == c2)) {
+		c3 = (uint8)(4 * randomFloatFast(seed0, seed1));
+	}
+
+	uint8 c4 = ((uint8)32 * randomFloatFast(seed0, seed1));
+	while (
+		((c3 == 2) && ((1 << c4) & 251658240) != 0)
+		|| ((c3 == 3) && ((1 << c4) & 64512) != 0)
+		) {
+		c4 = ((uint8)32 * randomFloatFast(seed0, seed1));
+	}
+	if (((1 << c4) & 255851568) == 0) {
+		return false;
+	}
+
+	uint8 c5 = ((uint8)32 * randomFloatFast(seed0, seed1));
+	while (c5 == c4) {
+		c5 = ((uint8)32 * randomFloatFast(seed0, seed1));
+	}
+	if (((1 << c5) & 255851568) == 0) {
+		return false;
+	}
+	return true;
+}
+
 template<uint8 nCardRewards>
-__global__ void oohblehSeedKernel(TestInfo info, uint64* results) {
+__global__ void badSilentKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
 
@@ -537,12 +665,27 @@ __global__ void oohblehSeedKernel(TestInfo info, uint64* results) {
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
 		if (testBadNeow<nCardRewards>(seed)) {
-			//if (true || testNoPotionsFast<nCardRewards>(seed)) {
-				if (testBadCardsFast<nCardRewards>(seed)) {
-					results[totalIdx] = seed;
-					return;
-				}
-			//}
+			if (testBadSilentCardsFast<nCardRewards>(seed)) {
+				results[totalIdx] = seed;
+				return;
+			}
+		}
+	}
+}
+
+template<uint8 nCardRewards>
+__global__ void badIroncladKernel(TestInfo info, uint64* results) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+
+	results[totalIdx] = false;
+	for (; seed < info.end; seed += info.blocks * info.threads)
+	{
+		if (testBadNeow<nCardRewards>(seed)) {
+			if (testCombatQNodes<3>(seed)) {
+				results[totalIdx] = seed;
+				return;
+			}
 		}
 	}
 }
@@ -583,8 +726,12 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 		//pandoraSeedKernelFast<72, 8> << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
-	case FunctionType::OOH_BLEH:
-		oohblehSeedKernel<3> << <info.blocks, info.threads >> > (info, dev_results);
+	case FunctionType::BAD_SILENT:
+		badSilentKernel<3> << <info.blocks, info.threads >> > (info, dev_results);
+		break;
+
+	case FunctionType::BAD_IRONCLAD:
+		badIroncladKernel<3> << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	default:

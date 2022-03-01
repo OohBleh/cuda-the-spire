@@ -17,7 +17,8 @@ typedef std::int64_t int64;
 enum class FunctionType {
 	PANDORA_71_8,
 	PANDORA_72_8,
-	OOH_BLEH,
+	BAD_SILENT,
+	BAD_IRONCLAD
 };
 
 const std::int8_t searchLength = 5;
