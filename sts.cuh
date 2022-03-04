@@ -18,6 +18,7 @@ enum class FunctionType {
 	PANDORA_71_8,
 	PANDORA_72_8,
 	BAD_SILENT,
+	BAD_WATCHER,
 	BAD_IRONCLAD
 };
 

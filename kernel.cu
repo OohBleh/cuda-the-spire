@@ -67,7 +67,7 @@ int runPandorasSearch(const unsigned int blocks, const unsigned int threads, con
 		//outStream << time << " " << info.start << " " << info.end << " " << std::endl;
 		std::cout << time << " " << info.start << " " << info.end << " " << std::endl;
 
-		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::BAD_SILENT, results.get());
+		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::BAD_WATCHER, results.get());
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "testSeedsWithCuda failed!");
 			return 1;
@@ -268,7 +268,7 @@ int main(int argc, const char* argv[])
 
 	int blocks = 24;//std::stoi(argv[1]);
 	int threads = 128;//std::stoi(argv[2]);
-	std::uint64_t batchSizeBillion = 1;//std::stoull(argv[3]);
+	std::uint64_t batchSizeBillion = 10;//std::stoull(argv[3]);
 	std::uint64_t start = 0;//std::stoull(argv[4]);
 	auto filename = "out.txt"; //argv[5];
 
