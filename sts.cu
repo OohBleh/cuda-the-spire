@@ -47,6 +47,19 @@ __forceinline__ __device__ uint16 random64Fast(uint64& seed0, uint64& seed1) {
 	return value;
 }
 
+template<uint8 n>
+__forceinline__ __device__ uint8 random8Fast(uint64& seed0, uint64& seed1) {
+	uint8 value;
+	uint64 s1 = seed0;
+	uint64 s0 = seed1;
+	seed0 = s0;
+	s1 ^= s1 << 23;
+	seed1 = s1 ^ s0 ^ s1 >> 17 ^ s0 >> 26;
+	uint64 bits = (seed0 + seed1) >> 1;
+	value = bits % n;
+	return value;
+}
+
 __forceinline__ __device__ float randomFloatFast(uint64& seed0, uint64& seed1) {
 	
 	static constexpr double NORM_FLOAT = 5.9604644775390625E-8;
@@ -383,12 +396,12 @@ __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
 
-	int8 adj = 5;
+	//int8 adj = 5;
 
 
 	//first card
-	int8 roll = random64Fast<100>(seed0, seed1) + adj;
-	bool is_common = (roll >= 40);
+	int8 roll = random64Fast<100>(seed0, seed1);
+	bool is_common = (roll >= 35);
 	
 	uint16 card1 = (is_common) ? random64Fast<W_NUM_A>(seed0, seed1) : (random64Fast<W_NUM_B>(seed0, seed1) + W_NUM_A);
 	
@@ -396,7 +409,7 @@ __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 		return false;
 	}
 
-	adj = (is_common) ? (adj - 1) : adj;
+	int8 adj = (is_common) ? (4) : (5);
 	
 	//second card
 	roll = random64Fast<100>(seed0, seed1) + adj;
@@ -747,7 +760,482 @@ __global__ void badIroncladKernel(TestInfo info, uint64* results) {
 	}
 }
 
+
 // ************************************************************** END Fast Pandora Functions
+
+// ************************************************************** START Fast Map Functions
+
+struct MapNode {
+	int8 parentCount;
+	int8 parents[6];
+
+	int8 edgeCount;
+	int8 edges[3];
+
+	__forceinline__ __device__ MapNode() {
+		parentCount = 0;
+		edgeCount = 0;
+	}
+
+
+	__forceinline__ __device__ void addParent(int8 parent) {
+		parents[parentCount++] = parent;
+	}
+
+	__forceinline__ __device__ void addEdge(int8 edge) {
+		int8 cur = 0;
+		while (true) {
+			if (cur == edgeCount) {
+				edges[cur] = edge;
+				++edgeCount;
+				return;
+			}
+
+			if (edge == edges[cur]) {
+				return;
+			}
+
+			if (edge < edges[cur]) {
+				for (int8 x = edgeCount; x > cur; --x) {
+					edges[x] = edges[x - 1];
+				}
+				edges[cur] = edge;
+				++edgeCount;
+				return;
+			}
+			++cur;
+		}
+	}
+
+	__forceinline__ __device__ int8 getMaxEdge() const {
+		return edges[edgeCount - 1];
+	}
+
+
+	__forceinline__ __device__ int8 getMinEdge() const {
+		return edges[0];
+	}
+
+	__forceinline__ __device__ int8 getMaxXParent() const {
+		int8 max = parents[0];
+		for (int8 i = 1; i < parentCount; ++i) {
+			if (parents[i] > max) {
+				max = parents[i];
+			}
+		}
+		return max;
+	}
+
+
+	__forceinline__ __device__ int8 getMinXParent() const {
+		int8 min = parents[0];
+		for (int8 i = 1; i < parentCount; ++i) {
+			if (parents[i] < min) {
+				min = parents[i];
+			}
+		}
+		return min;
+	}
+
+};
+
+struct Map {
+	MapNode nodes[15][7];
+
+	__forceinline__ __device__ MapNode& getNode(int8 x, int8 y) {
+		return nodes[y][x];
+	}
+	__forceinline__ __device__ const MapNode& getNode(int8 x, int8 y) const {
+		return nodes[y][x];
+	}
+
+	__forceinline__ __device__ Map() {
+
+		for (int8 r = 0; r < 15; ++r) {
+			for (int8 c = 0; c < 7; ++c) {
+				nodes[r][c].edgeCount = 0;
+				nodes[r][c].parentCount = 0;
+			}
+		}
+	}
+};
+
+
+__forceinline__ __device__ bool getCommonAncestor(const Map& map, int8 x1, int8 x2, int8 y) {
+	if (map.getNode(x1, y).parentCount == 0 || map.getNode(x2, y).parentCount == 0) {
+		return false;
+	}
+
+	int8 l_node;
+	int8 r_node;
+	if (x1 < y) {
+		l_node = x1;
+		r_node = x2;
+	}
+	else {
+		l_node = x2;
+		r_node = x1;
+	}
+
+	int8 leftX = map.getNode(l_node, y).getMaxXParent();
+	if (leftX == map.getNode(r_node, y).getMinXParent()) {
+		return true;
+	}
+	return false;
+}
+
+__forceinline__ __device__ int8 choosePathParentLoopRandomizer(const Map& map, uint64& seed0, uint64& seed1, int8 curX, int8 curY, int8 newX) {
+	const MapNode& newEdgeDest = map.getNode(newX, curY + 1);
+
+	for (int8 i = 0; i < newEdgeDest.parentCount; i++) {
+		int8 parentX = newEdgeDest.parents[i];
+		if (curX == parentX) {
+			continue;
+		}
+		if (!getCommonAncestor(map, parentX, curX, curY)) {
+			continue;
+		}
+		
+		/*
+			if (newX > curX) {
+				//newX = curX + rng.randRange8(-1, 0);
+				newX = curX + random8Fast<2>(seed0, seed1) - 1;
+				if (newX < 0) {
+					newX = curX;
+				}
+			}
+			else if (newX == curX) {
+				//newX = curX + rng.randRange8(-1, 1);
+				newX = curX + random8Fast<3>(seed0, seed1) - 1;
+				if (newX > 6) {
+					newX = curX - 1;
+				}
+				else if (newX < 0) {
+					newX = curX + 1;
+				}
+			}
+			else {
+				//newX = curX + rng.randRange8(0, 1);
+				newX = curX + random8Fast<2>(seed0, seed1);
+				if (newX > 6) {
+					newX = curX;
+				}
+			}
+		*/
+
+		static constexpr int8_t cPPLR[7][7][6] = { 1,0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,1,2,1,2,0,1,2,0,1,2,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,2,3,2,3,2,3,2,3,2,3,2,3,1,2,3,1,2,3,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,3,4,3,4,3,4,3,4,3,4,3,4,3,4,3,4,3,4,2,3,4,2,3,4,2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,2,3,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,4,5,3,4,5,3,4,5,3,4,3,4,3,4,3,4,3,4,3,4,5,6,5,6,5,6,5,6,5,6,5,6,5,6,5,6,5,6,5,6,5,6,5,6,5,6,5,6,5,6,4,5,6,4,5,6,4,5,4,5,4,5,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,5,6,5,5,6,5 };
+		newX = cPPLR[curX][newX][random8Fast<6>(seed0, seed1)];
+
+	}
+
+	return newX;
+}
+
+__forceinline__ __device__ int choosePathAdjustNewX(const Map& map, int8 curX, int8 curY, int8 newEdgeX) {
+	if (curX != 0) {
+		auto right_node = map.getNode(curX - 1, curY);
+		if (right_node.edgeCount > 0) {
+			int8 left_edge_of_right_node = right_node.getMaxEdge();
+			if (left_edge_of_right_node > newEdgeX) {
+				newEdgeX = left_edge_of_right_node;
+			}
+		}
+	}
+
+	if (curX < 6) {
+		auto right_node = map.getNode(curX + 1, curY);
+		if (right_node.edgeCount > 0) {
+			int8 left_edge_of_right_node = right_node.getMinEdge();
+			if (left_edge_of_right_node < newEdgeX) {
+				newEdgeX = left_edge_of_right_node;
+			}
+		}
+	}
+	return newEdgeX;
+}
+
+
+__device__ int8 chooseNewPath(Map& map, uint64& seed0, uint64& seed1, int8 curX, int8 curY) {
+	MapNode& currentNode = map.getNode(curX, curY);
+	/*
+	int8 min;
+	int8 max;
+	if (curX == 0) {
+		min = 0;
+		max = 1;
+	}
+	else if (curX == 6) {
+		min = -1;
+		max = 0;
+	}
+	else {
+		min = -1;
+		max = 1;
+	}
+	int8 newEdgeX = curX + rng.randRange8(min, max);
+	*/
+
+	static constexpr int8_t NEXT[7][6] = { 0,1,0,1,0,1,0,1,2,0,1,2,1,2,3,1,2,3,2,3,4,2,3,4,3,4,5,3,4,5,4,5,6,4,5,6,5,6,5,6,5,6 };
+	
+	int8 newEdgeX = NEXT[curX][random8Fast<6>(seed0, seed1)];
+	newEdgeX = choosePathParentLoopRandomizer(map, seed0, seed1, curX, curY, newEdgeX);
+	newEdgeX = choosePathAdjustNewX(map, curX, curY, newEdgeX);
+
+	return newEdgeX;
+}
+
+__device__ void createPathsIteration(Map& map, uint64& seed0, uint64& seed1, int8 startX) {
+	int8 curX = startX;
+	for (int8 curY = 0; curY < 15 - 1; ++curY) {
+		int8 newX = chooseNewPath(map, seed0, seed1, curX, curY);
+		map.getNode(curX, curY).addEdge(newX);
+		map.getNode(newX, curY + 1).addParent(curX);
+		curX = newX;
+	}
+}
+
+__forceinline__ __device__ int8 chooseNewPathFirstTest(Map& map, uint64& seed0, uint64& seed1, int8 curX, int8 curY) {
+	MapNode& currentNode = map.getNode(curX, curY);
+
+	/*
+	int8 min;
+	int8 max;
+	if (curX == 0) {
+		min = 0;
+		max = 1;
+	}
+	else if (curX == 6) {
+		min = -1;
+		max = 0;
+	}
+	else {
+		min = -1;
+		max = 1;
+	}
+	
+	return curX + rng.randRange8(min, max);
+	*/
+
+	static constexpr int8_t NEXT[7][6] = { 0,1,0,1,0,1,0,1,2,0,1,2,1,2,3,1,2,3,2,3,4,2,3,4,3,4,5,3,4,5,4,5,6,4,5,6,5,6,5,6,5,6 };
+	return NEXT[curX][random8Fast<6>(seed0, seed1)];
+
+	
+}
+
+__device__ void createSinglePathTestFirstIteration(Map& map, uint64& seed0, uint64& seed1, int8 startX) {
+	int8 curX = startX;
+	for (int8 curY = 0; curY < 15 - 1; ++curY) {
+		int8 newX = chooseNewPathFirstTest(map, seed0, seed1, curX, curY);
+		auto& nextNode = map.getNode(newX, curY + 1);
+		map.getNode(curX, curY).addEdge(newX);
+		nextNode.addParent(curX);
+		curX = newX;
+	}
+	map.getNode(curX, 14).addEdge(3);
+}
+
+__device__ bool createSinglePathTestIteration(Map& map, uint64& seed0, uint64& seed1, int8 startX) {
+	int8 curX = startX;
+	for (int8 curY = 0; curY < 15 - 1; ++curY) {
+		int8 newX = chooseNewPath(map, seed0, seed1, curX, curY);
+
+		auto& nextNode = map.getNode(newX, curY + 1);
+		if (curY < searchLength && nextNode.parentCount == 0) {
+			return false;
+		}
+
+		map.getNode(curX, curY).addEdge(newX);
+		map.getNode(newX, curY + 1).addParent(curX);
+		curX = newX;
+	}
+	map.getNode(curX, 14).addEdge(3);
+	return true;
+}
+
+__forceinline__ __device__ bool createPathsSinglePathTest(Map& map, uint64& seed0, uint64& seed1) {
+	int8 firstStartX = random8Fast<7>(seed0, seed1);
+	createSinglePathTestFirstIteration(map, seed0, seed1, firstStartX);
+
+	for (int8 i = 1; i < 6; ++i) {
+		int8 startX = random8Fast<7>(seed0, seed1);
+
+		while (startX == firstStartX && i == 1) {
+			startX = random8Fast<7>(seed0, seed1);
+		}
+
+		bool res = createSinglePathTestIteration(map, seed0, seed1, startX);
+		if (!res) {
+			return false;
+		}
+	}
+	return true;
+}
+
+__forceinline__ __device__ int8 getNewXFirstTest(uint64& seed0, uint64& seed1, int8 firstStartX, int8 curX, int8 curY, int8 correctNewX) {
+	
+	/*
+		int8 min;
+		int8 max;
+		if (curX == 0) {
+			min = 0;
+			max = 1;
+		}
+		else if (curX == 6) {
+			min = -1;
+			max = 0;
+		}
+		else {
+			min = -1;
+			max = 1;
+		}
+
+		int8 newX = curX + rng.randRange8(min, max);
+	*/
+
+	static constexpr int8_t NEXT[7][6] = { 0,1,0,1,0,1,0,1,2,0,1,2,1,2,3,1,2,3,2,3,4,2,3,4,3,4,5,3,4,5,4,5,6,4,5,6,5,6,5,6,5,6 };
+	int8 newX = NEXT[curX][random8Fast<6>(seed0, seed1)];
+
+	if (curY == 0) {
+		if (curX != 0) {
+			if (firstStartX == curX - 1) {
+				int8 left_edge_of_right_node = correctNewX;
+				if (left_edge_of_right_node > newX) {
+					newX = left_edge_of_right_node;
+				}
+			}
+		}
+
+		if (curX < 6) {
+			if (firstStartX == curX + 1) {
+				int8 left_edge_of_right_node = correctNewX;
+				if (left_edge_of_right_node < newX) {
+					newX = left_edge_of_right_node;
+				}
+			}
+		}
+	}
+
+	return newX;
+}
+
+__forceinline__ __device__ int8 passesFirstTest(uint64 seed) {
+	//Random mapRng(seed + 1);
+	
+	uint64 seed0 = murmurHash3(seed + 1);
+	//uint64 seed0 = murmurHash3(77 + 1);
+	uint64 seed1 = murmurHash3(seed0);
+	
+	int8 firstStartX = random8Fast<7>(seed0, seed1);
+	int8 firstNewX;
+
+	int8 results[searchLength];
+	//int8 Dlist[15];
+
+	int8 curX = firstStartX;
+
+	//Dlist[0] = 99;
+
+	int8 curY = 0;
+	for (curY = 0; curY < searchLength; ++curY) {
+		/*
+			int8 min;
+			int8 max;
+			if (curX == 0) {
+				min = 0;
+				max = 1;
+			}
+			else if (curX == 6) {
+				min = -1;
+				max = 0;
+			}
+			else {
+				min = -1;
+				max = 1;
+			}
+			int8 newX = curX + mapRng.randRange8(min, max);
+		*/
+
+		static constexpr int8_t NEXT[7][6] = { 0,1,0,1,0,1,0,1,2,0,1,2,1,2,3,1,2,3,2,3,4,2,3,4,3,4,5,3,4,5,4,5,6,4,5,6,5,6,5,6,5,6 };
+		//int8 D = random8Fast<6>(seed0, seed1);
+		//Dlist[curY + 1] = D;
+		//int8 newX = NEXT[curX][D];
+
+		int8 newX = NEXT[curX][random8Fast<6>(seed0, seed1)];
+		results[curY] = newX;
+		curX = newX;
+	}
+
+	/*
+	static constexpr int8 trueResults[15] = {4,4,3,4,4,4,4,4,5,4,3,2,1,2};
+	//static constexpr int8 trueD[15] = { 99, 0, 4, 0, 5, 1, 4, 1, 1, 5, 3, 0, 0, 0, 2 };
+
+	for (int8 testY = 0; testY < 3 + 0*searchLength; ++testY) {
+		if (results[testY] != trueResults[testY]) {
+			return false;
+		}
+
+		//if (Dlist[testY] != trueD[testY]) {
+			//return false;
+		//}
+	}
+	return true;
+	*/
+	for (; curY < 14; ++curY) {
+		random8Fast<2>(seed0, seed1);
+	}
+
+	int8 startX = random8Fast<7>(seed0, seed1);
+	while (startX == firstStartX) {
+		startX = random8Fast<7>(seed0, seed1);
+	}
+
+	curX = startX;
+	for (int8 curY = 0; curY < searchLength; ++curY) {
+
+		int8 newX = getNewXFirstTest(seed0, seed1, firstStartX, curX, curY, results[curY]);
+		if (newX != results[curY]) {
+			return false;
+		}
+
+		curX = newX;
+	}
+
+	return true;
+}
+
+__forceinline__ __device__ int8 testSeedForSinglePath(uint64 seed) {
+	if (passesFirstTest(seed)) {
+		//Random mapRng(seed + 1);
+		uint64 seed0 = murmurHash3(seed + 1);
+		uint64 seed1 = murmurHash3(seed0);
+		Map map;
+		return createPathsSinglePathTest(map, seed0, seed1);
+		//return true;
+	}
+	else {
+		return false;
+	}
+}
+
+
+__global__ void badMapKernel(TestInfo info, uint64* results) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+
+	results[totalIdx] = false;
+	for (; seed < info.end; seed += info.blocks * info.threads)
+	{
+		if (testSeedForSinglePath(seed)) {
+			results[totalIdx] = seed;
+			return;
+		}
+	}
+}
+
+
+
+
+// ************************************************************** END Fast Map Functions
 
 cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
 {
@@ -793,6 +1281,10 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 
 	case FunctionType::BAD_IRONCLAD:
 		badIroncladKernel<5> << <info.blocks, info.threads >> > (info, dev_results);
+		break;
+
+	case FunctionType::BAD_MAP:
+		badMapKernel<< <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	default:

@@ -19,7 +19,8 @@ enum class FunctionType {
 	PANDORA_72_8,
 	BAD_SILENT,
 	BAD_WATCHER,
-	BAD_IRONCLAD
+	BAD_IRONCLAD,
+	BAD_MAP
 };
 
 const std::int8_t searchLength = 5;
