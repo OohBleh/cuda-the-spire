@@ -2,6 +2,8 @@
 #include "sts.cuh"
 #include <stdio.h>
 
+// ************************************************************** BEGIN RNG Functions
+
 __forceinline__ __device__ uint64 murmurHash3(uint64 x) {
 	x ^= x >> 33;
 	x *= static_cast<uint64>(-49064778989728563LL);
@@ -61,7 +63,7 @@ __forceinline__ __device__ uint8 random8Fast(uint64& seed0, uint64& seed1) {
 }
 
 __forceinline__ __device__ float randomFloatFast(uint64& seed0, uint64& seed1) {
-	
+
 	static constexpr double NORM_FLOAT = 5.9604644775390625E-8;
 
 	uint64 s1 = seed0;
@@ -69,13 +71,25 @@ __forceinline__ __device__ float randomFloatFast(uint64& seed0, uint64& seed1) {
 	seed0 = s0;
 	s1 ^= s1 << 23;
 	seed1 = s1 ^ s0 ^ s1 >> 17 ^ s0 >> 26;
-	
+
 	uint64 x = (seed0 + seed1) >> 40;
 	double d = static_cast<double>(x) * NORM_FLOAT;
 	return static_cast<float>(d);
 }
 
+__forceinline__ __device__ uint64 randomPreFloatFast(uint64& seed0, uint64& seed1) {
 
+	uint64 s1 = seed0;
+	uint64 s0 = seed1;
+	seed0 = s0;
+	s1 ^= s1 << 23;
+	seed1 = s1 ^ s0 ^ s1 >> 17 ^ s0 >> 26;
+
+	uint64 x = (seed0 + seed1) >> 40;
+	return x;
+}
+
+// ************************************************************** EMD RNG Functions
 
 // ************************************************************** BEGIN Accurate Pandora Functions
 
@@ -114,7 +128,6 @@ __global__ void pandoraSeedKernel(TestInfo info, bool* results) {
 
 // ************************************************************** BEGIN Fast Pandora Functions
 
-
 template<uint8 n, uint8 limit>
 __forceinline__ __device__ bool testPandoraSeedFast(const uint64 seed) {
 	uint64 seed0 = seed;
@@ -148,14 +161,7 @@ __global__ void pandoraSeedKernelFast(TestInfo info, bool* results) {
 
 // ************************************************************** END Fast Pandora Functions
 
-// ************************************************************** BEGIN Fast Pandora Functions
-
-
-
-
-
-
-
+// ************************************************************** BEGIN Fast Cards/Neow Functions
 
 template<uint8 nCardRewards>
 __forceinline__ __device__ bool testBadNeow1(const uint64 seed) {
@@ -207,7 +213,6 @@ __forceinline__ __device__ bool testBadNeow1(const uint64 seed) {
 
 	return true;
 }
-
 
 template<uint8 nCardRewards>
 __forceinline__ __device__ bool testBadNeow2(const uint64 seed) {
@@ -640,7 +645,6 @@ __forceinline__ __device__ bool testNoPotionsFast(const uint64 seed) {
 	return true;
 }
 
-
 /*
 
 combats with the left column filled in will be considered "bad"
@@ -761,9 +765,9 @@ __global__ void badIroncladKernel(TestInfo info, uint64* results) {
 }
 
 
-// ************************************************************** END Fast Pandora Functions
+// ************************************************************** END Fast Cards/Neow Functions
 
-// ************************************************************** START Fast Map Functions
+// ************************************************************** BEGIN Fast Map Functions
 
 struct MapNode {
 	int8 parentCount;
@@ -860,7 +864,6 @@ struct Map {
 	}
 };
 
-
 __forceinline__ __device__ bool getCommonAncestor(const Map& map, int8 x1, int8 x2, int8 y) {
 	if (map.getNode(x1, y).parentCount == 0 || map.getNode(x2, y).parentCount == 0) {
 		return false;
@@ -953,7 +956,6 @@ __forceinline__ __device__ int choosePathAdjustNewX(const Map& map, int8 curX, i
 	}
 	return newEdgeX;
 }
-
 
 __device__ int8 chooseNewPath(Map& map, uint64& seed0, uint64& seed1, int8 curX, int8 curY) {
 	MapNode& currentNode = map.getNode(curX, curY);
@@ -1091,11 +1093,12 @@ __forceinline__ __device__ int8 getNewXFirstTest(uint64& seed0, uint64& seed1, i
 
 		int8 newX = curX + rng.randRange8(min, max);
 	*/
+	
+		static constexpr int8_t NEXT[7][6] = { 0,1,0,1,0,1,0,1,2,0,1,2,1,2,3,1,2,3,2,3,4,2,3,4,3,4,5,3,4,5,4,5,6,4,5,6,5,6,5,6,5,6 };
+		int8 newX = NEXT[curX][random8Fast<6>(seed0, seed1)];
 
-	static constexpr int8_t NEXT[7][6] = { 0,1,0,1,0,1,0,1,2,0,1,2,1,2,3,1,2,3,2,3,4,2,3,4,3,4,5,3,4,5,4,5,6,4,5,6,5,6,5,6,5,6 };
-	int8 newX = NEXT[curX][random8Fast<6>(seed0, seed1)];
-
-	if (curY == 0) {
+		//if (curY == 0) {
+		/*
 		if (curX != 0) {
 			if (firstStartX == curX - 1) {
 				int8 left_edge_of_right_node = correctNewX;
@@ -1104,24 +1107,44 @@ __forceinline__ __device__ int8 getNewXFirstTest(uint64& seed0, uint64& seed1, i
 				}
 			}
 		}
-
-		if (curX < 6) {
-			if (firstStartX == curX + 1) {
-				int8 left_edge_of_right_node = correctNewX;
-				if (left_edge_of_right_node < newX) {
-					newX = left_edge_of_right_node;
+		if ((curX != 0) && (firstStartX == curX - 1) && (correctNewX > newX)) {
+			newX = correctNewX;
+		}
+		
+		/*
+			if (curX < 6) {
+				if (firstStartX == curX + 1) {
+					int8 left_edge_of_right_node = correctNewX;
+					if (left_edge_of_right_node < newX) {
+						newX = left_edge_of_right_node;
+					}
 				}
 			}
-		}
-	}
+		//}
 
-	return newX;
+		if ((curX < 6) && (firstStartX == curX + 1) && (correctNewX < newX)) {
+			newX = correctNewX;
+		}
+
+		return newX;
+		*/
+
+		static constexpr int8 COMP[7][7] = { 0,1,0,0,0,0,0,2,0,1,0,0,0,0,0,2,0,1,0,0,0,0,0,2,0,1,0,0,0,0,0,2,0,1,0,0,0,0,0,2,0,1,0,0,0,0,0,2,0 };
+		static constexpr int8 NEWX[7][3][7] = { 0,1,2,3,4,5,6,0,1,2,3,4,5,6,0,0,0,0,0,0,0,0,1,2,3,4,5,6,1,1,2,3,4,5,6,0,1,1,1,1,1,1,0,1,2,3,4,5,6,2,2,2,3,4,5,6,0,1,2,2,2,2,2,0,1,2,3,4,5,6,3,3,3,3,4,5,6,0,1,2,3,3,3,3,0,1,2,3,4,5,6,4,4,4,4,4,5,6,0,1,2,3,4,4,4,0,1,2,3,4,5,6,5,5,5,5,5,5,6,0,1,2,3,4,5,5,0,1,2,3,4,5,6,6,6,6,6,6,6,6,0,1,2,3,4,5,6 };
+
+		return NEWX[
+			correctNewX
+		][
+			COMP[firstStartX][curX]
+		][
+			newX
+		];
 }
 
 __forceinline__ __device__ int8 passesFirstTest(uint64 seed) {
 	//Random mapRng(seed + 1);
 	
-	uint64 seed0 = murmurHash3(seed + 1);
+	uint64 seed0 = murmurHash3(seed);
 	//uint64 seed0 = murmurHash3(77 + 1);
 	uint64 seed1 = murmurHash3(seed0);
 	
@@ -1131,9 +1154,16 @@ __forceinline__ __device__ int8 passesFirstTest(uint64 seed) {
 	int8 results[searchLength];
 	//int8 Dlist[15];
 
-	int8 curX = firstStartX;
 
+	static constexpr bool MIDDLE[7] = { false, false, true, true, true, false, false };
+	int8 curX = firstStartX;
+	if (MIDDLE[curX]) {
+		return false;
+	}
 	//Dlist[0] = 99;
+
+	static constexpr int8_t NEXT[7][6] = { 0,1,0,1,0,1,0,1,2,0,1,2,1,2,3,1,2,3,2,3,4,2,3,4,3,4,5,3,4,5,4,5,6,4,5,6,5,6,5,6,5,6 };
+	//static constexpr bool NOT_WALL[7] = { false, true, true, true, true, true, false };
 
 	int8 curY = 0;
 	for (curY = 0; curY < searchLength; ++curY) {
@@ -1155,12 +1185,17 @@ __forceinline__ __device__ int8 passesFirstTest(uint64 seed) {
 			int8 newX = curX + mapRng.randRange8(min, max);
 		*/
 
-		static constexpr int8_t NEXT[7][6] = { 0,1,0,1,0,1,0,1,2,0,1,2,1,2,3,1,2,3,2,3,4,2,3,4,3,4,5,3,4,5,4,5,6,4,5,6,5,6,5,6,5,6 };
 		//int8 D = random8Fast<6>(seed0, seed1);
 		//Dlist[curY + 1] = D;
 		//int8 newX = NEXT[curX][D];
 
 		int8 newX = NEXT[curX][random8Fast<6>(seed0, seed1)];
+
+		if (MIDDLE[newX]) {
+			return false;
+		}
+
+
 		results[curY] = newX;
 		curX = newX;
 	}
@@ -1190,9 +1225,16 @@ __forceinline__ __device__ int8 passesFirstTest(uint64 seed) {
 	}
 
 	curX = startX;
-	for (int8 curY = 0; curY < searchLength; ++curY) {
+	int8 newX = getNewXFirstTest(seed0, seed1, firstStartX, curX, curY, results[curY]);
+	if (newX != results[0]) {
+		return false;
+	}
 
-		int8 newX = getNewXFirstTest(seed0, seed1, firstStartX, curX, curY, results[curY]);
+	curX = newX;
+
+	for (int8 curY = 1; curY < searchLength; ++curY) {
+
+		newX = NEXT[curX][random8Fast<6>(seed0, seed1)];
 		if (newX != results[curY]) {
 			return false;
 		}
@@ -1206,7 +1248,7 @@ __forceinline__ __device__ int8 passesFirstTest(uint64 seed) {
 __forceinline__ __device__ int8 testSeedForSinglePath(uint64 seed) {
 	if (passesFirstTest(seed)) {
 		//Random mapRng(seed + 1);
-		uint64 seed0 = murmurHash3(seed + 1);
+		uint64 seed0 = murmurHash3(seed);
 		uint64 seed1 = murmurHash3(seed0);
 		Map map;
 		return createPathsSinglePathTest(map, seed0, seed1);
@@ -1217,7 +1259,6 @@ __forceinline__ __device__ int8 testSeedForSinglePath(uint64 seed) {
 	}
 }
 
-
 __global__ void badMapKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
@@ -1226,16 +1267,123 @@ __global__ void badMapKernel(TestInfo info, uint64* results) {
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
 		if (testSeedForSinglePath(seed)) {
+			results[totalIdx] = seed-1;
+			return;
+		}
+	}
+}
+
+// ************************************************************** END Fast Map Functions
+
+// ************************************************************** BEGIN ?-Node Functions
+
+//template<uint8 nQNodes>
+__forceinline__ __device__ bool onlyShopsTreasures(const uint64 seed) {
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+	
+	/*
+	uint8 combatThreshold = 10;
+	uint8 shopThreshold = 3;
+	uint8 treasureThreshold = 2;
+
+	for (uint8 i = 0; i < 9; i++) {
+		//float p = randomFloatFast(seed0, seed1);
+		uint8 roll = static_cast<uint8>(100 * randomFloatFast(seed0, seed1));
+		if (roll < combatThreshold) {
+			return false;
+		}
+		roll -= combatThreshold;
+		
+		if (roll < shopThreshold) {
+			combatThreshold += 10;
+			shopThreshold = 3;
+			treasureThreshold += 2;
+			continue;
+		}
+
+		roll -= shopThreshold;
+		if (roll < treasureThreshold) {
+			combatThreshold += 10;
+			shopThreshold += 3;
+			treasureThreshold = 2;
+			continue;
+		}
+		return false;
+	}
+
+	return true;
+	*/
+
+	static constexpr uint8 NEXT_STATE[74][2] = { 2,1,4,5,6,3,8,9,10,7,8,11,12,7,14,15,16,13,14,17,18,13,14,19,20,13,22,23,24,21,22,25,26,21,22,27,28,21,22,29,30,21,32,33,34,31,32,35,36,31,32,37,38,31,32,39,40,31,32,41,42,31,44,45,46,43,44,47,48,43,44,49,50,43,44,51,52,43,44,53,54,43,44,55,56,43,58,59,60,57,58,61,62,57,58,63,64,57,58,65,66,57,58,67,68,57,58,69,70,57,58,71,72,57,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73 };
+	static constexpr uint8 CUTOFF[74][3] = { 10,13,15,20,26,28,20,23,27,30,36,38,30,33,37,30,39,41,30,33,39,40,46,48,40,43,47,40,49,51,40,43,49,40,52,54,40,43,51,50,56,58,50,53,57,50,59,61,50,53,59,50,62,64,50,53,61,50,65,67,50,53,63,60,66,68,60,63,67,60,69,71,60,63,69,60,72,74,60,63,71,60,75,77,60,63,73,60,78,80,60,63,75,70,76,78,70,73,77,70,79,81,70,73,79,70,82,84,70,73,81,70,85,87,70,73,83,70,88,90,70,73,85,70,91,93,70,73,87,80,86,88,80,83,87,80,89,91,80,83,89,80,92,94,80,83,91,80,95,97,80,83,93,80,98,100,80,83,95,80,101,103,80,83,97,80,104,106,80,83,99,90,96,98,90,93,97,90,99,101,90,93,99,90,102,104,90,93,101,90,105,107,90,93,103,90,108,110,90,93,105,90,111,113,90,93,107,90,114,116,90,93,109,90,117,119,90,93,111,100,103,105 };;
+	
+	//static constexpr uint64 minVal[100] = { 0,
+		//335545,503317,671089,838861,1006633,1174406,1342178,1509950,1677722,1845494,2013266,2181038,2348811,2516583,2684355,2852127,3019899,3187671,3355444,3523216,3690988,3858760,4026532,4194304,4362076,4529849,4697621,4865393,5033165,5200937,5368709,5536481,5704254,5872026,6039798,6207570,6375342,6543114,6710887,6878659,7046431,7214203,7381975,7549747,7717520,7885292,8053064,8220836,8388608,8556380,8724152,8891925,9059697,9227469,9395241,9563013,9730785,9898558,10066330,10234102,10401874,10569646,10737418,10905190,11072962,11240735,11408507,11576279,11744051,11911823,12079595,12247368,12415140,12582912,12750684,12918456,13086228,13254000,13421773,13589545,13757317,13925089,14092861,14260633,14428406,14596178,14763950,14931722,15099494,15267266,15435039,15602811,15770583,15938355,16106127,16273899,16441672,16609444,16777216, };
+	//static constexpr uint64 maxVal[100] = { 335544,
+		//503316,671088,838860,1006632,1174405,1342177,1509949,1677721,1845493,2013265,2181037,2348810,2516582,2684354,2852126,3019898,3187670,3355443,3523215,3690987,3858759,4026531,4194303,4362075,4529848,4697620,4865392,5033164,5200936,5368708,5536480,5704253,5872025,6039797,6207569,6375341,6543113,6710886,6878658,7046430,7214202,7381974,7549746,7717519,7885291,8053063,8220835,8388607,8556379,8724151,8891924,9059696,9227468,9395240,9563012,9730784,9898557,10066329,10234101,10401873,10569645,10737417,10905189,11072961,11240734,11408506,11576278,11744050,11911822,12079594,12247367,12415139,12582911,12750683,12918455,13086227,13253999,13421772,13589544,13757316,13925088,14092860,14260632,14428405,14596177,14763949,14931721,15099493,15267265,15435038,15602810,15770582,15938354,16106126,16273898,16441671,16609443,16777215,16944986, };
+	uint8 currState = 0;
+
+	for (uint8 i = 0; i < 9; i++) {
+		//float p = randomFloatFast(seed0, seed1);
+		//int8 result = ROLL_RESULT[currState][static_cast<int8>(100 * randomFloatFast(seed0, seed1))];
+		//uint8 roll = (uint8)(100 * randomFloatFast(seed0, seed1));
+		
+		
+		uint8 roll = static_cast<uint8>(100 * randomFloatFast(seed0, seed1));
+
+		if (
+			(roll >= CUTOFF[currState][2]) ||
+			(roll < CUTOFF[currState][0])
+		) {
+			return false;
+		}
+
+		currState = (roll < CUTOFF[currState][1]) ? NEXT_STATE[currState][0] : NEXT_STATE[currState][1];
+		
+
+		/*
+		uint64 roll = randomPreFloatFast(seed0, seed1);
+		
+		//	d100_roll >= CUTOFF <-->
+		//	roll >= minVal[CUTOFF]
+
+		//	d100_roll < CUTOFF <-->
+		//	roll < minVal[CUTOFF]
+		
+		if (
+			(roll >= minVal[CUTOFF[currState][2]]) ||
+			(roll < minVal[CUTOFF[currState][0]])
+		) {
+			return false;
+		}
+
+		
+		//	d100_roll < CUTOFF <-->
+		//	roll < minVal[CUTOFF]
+		
+		currState = (roll < minVal[CUTOFF[currState][1]]) ? NEXT_STATE[currState][0] : NEXT_STATE[currState][1];
+		*/
+	}
+	
+	return true;
+}
+
+__global__ void fastQNodeKernel(TestInfo info, uint64* results) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+
+	results[totalIdx] = false;
+	for (; seed < info.end; seed += info.blocks * info.threads)
+	{
+		if (onlyShopsTreasures(seed)) {
 			results[totalIdx] = seed;
 			return;
 		}
 	}
 }
 
-
-
-
-// ************************************************************** END Fast Map Functions
+// ************************************************************** END ?-Node Functions
 
 cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
 {
@@ -1284,7 +1432,11 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 		break;
 
 	case FunctionType::BAD_MAP:
-		badMapKernel<< <info.blocks, info.threads >> > (info, dev_results);
+		badMapKernel << <info.blocks, info.threads >> > (info, dev_results);
+		break;
+
+	case FunctionType::FAST_QNODES:
+		fastQNodeKernel << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	default:
