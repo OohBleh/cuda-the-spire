@@ -1144,7 +1144,7 @@ __forceinline__ __device__ int8 getNewXFirstTest(uint64& seed0, uint64& seed1, i
 __forceinline__ __device__ int8 passesFirstTest(uint64 seed) {
 	//Random mapRng(seed + 1);
 	
-	uint64 seed0 = murmurHash3(seed);
+	uint64 seed0 = murmurHash3(seed + 1);
 	//uint64 seed0 = murmurHash3(77 + 1);
 	uint64 seed1 = murmurHash3(seed0);
 	
@@ -1248,7 +1248,7 @@ __forceinline__ __device__ int8 passesFirstTest(uint64 seed) {
 __forceinline__ __device__ int8 testSeedForSinglePath(uint64 seed) {
 	if (passesFirstTest(seed)) {
 		//Random mapRng(seed + 1);
-		uint64 seed0 = murmurHash3(seed);
+		uint64 seed0 = murmurHash3(seed + 1);
 		uint64 seed1 = murmurHash3(seed0);
 		Map map;
 		return createPathsSinglePathTest(map, seed0, seed1);
@@ -1267,7 +1267,7 @@ __global__ void badMapKernel(TestInfo info, uint64* results) {
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
 		if (testSeedForSinglePath(seed)) {
-			results[totalIdx] = seed-1;
+			results[totalIdx] = seed;
 			return;
 		}
 	}

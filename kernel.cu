@@ -11,6 +11,8 @@
 #include <fstream>
 #include <memory>
 
+#include <time.h>
+
 #include "sts.cuh"
 
 static const uint64 ONE_BILLION = 1000000000ULL;
@@ -67,7 +69,7 @@ int runPandorasSearch(const unsigned int blocks, const unsigned int threads, con
 		//outStream << time << " " << info.start << " " << info.end << " " << std::endl;
 		std::cout << time << " " << info.start << " " << info.end << " " << std::endl;
 
-		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::FAST_QNODES, results.get());
+		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::BAD_MAP, results.get());
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "testSeedsWithCuda failed!");
 			return 1;
@@ -270,7 +272,10 @@ int main(int argc, const char* argv[])
 	int threads = 128;//std::stoi(argv[2]);
 	std::uint64_t batchSizeBillion = 10;//std::stoull(argv[3]);
 	std::uint64_t start = 0;//std::stoull(argv[4]);
-	auto filename = "out.txt"; //argv[5];
+	//auto filename = "out.txt"; //argv[5];
+
+	std::string fName = "out-" + std::to_string(time(NULL)) + ".txt";
+	const char* filename = fName.c_str(); //argv[5];
 
 	return runPandorasSearch(blocks, threads, batchSizeBillion, start, filename);
 
