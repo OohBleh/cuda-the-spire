@@ -45,7 +45,8 @@ std::string getTime() {
 }
 
 int runPandorasSearch(const unsigned int blocks, const unsigned int threads, const std::uint64_t batchSizeBillion, const std::uint64_t startSeed, const char* filename) {
-	uint64 searchCountTotal = static_cast<int64>(batchSizeBillion * 1000000000ULL);
+	//uint64 searchCountTotal = static_cast<int64>(batchSizeBillion * 1000000000ULL);
+	uint64 searchCountTotal = static_cast<int64>(batchSizeBillion * ONE_BILLION);
 	const unsigned int totalThreads = threads * blocks;
 	const uint64 searchCountPerThread = searchCountTotal / totalThreads;
 
@@ -69,7 +70,7 @@ int runPandorasSearch(const unsigned int blocks, const unsigned int threads, con
 		//outStream << time << " " << info.start << " " << info.end << " " << std::endl;
 		std::cout << time << " " << info.start << " " << info.end << " " << std::endl;
 
-		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::BAD_MAP, results.get());
+		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::BR_CUSTOM, results.get());
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "testSeedsWithCuda failed!");
 			return 1;
@@ -270,8 +271,8 @@ int main(int argc, const char* argv[])
 
 	int blocks = 24;//std::stoi(argv[1]);
 	int threads = 128;//std::stoi(argv[2]);
-	std::uint64_t batchSizeBillion = 10;//std::stoull(argv[3]);
-	std::uint64_t start = 0;//std::stoull(argv[4]);
+	std::uint64_t batchSizeBillion = 100;//std::stoull(argv[3]);
+	std::uint64_t start = 1312 * batchSizeBillion * ONE_BILLION;//std::stoull(argv[4]);
 	//auto filename = "out.txt"; //argv[5];
 
 	std::string fName = "out-" + std::to_string(time(NULL)) + ".txt";

@@ -181,6 +181,8 @@ __forceinline__ __device__ bool testBadNeow1(const uint64 seed) {
 		return false;
 	}
 
+	return true;
+
 	/*
 		[ ] THREE_SMALL_POTIONS,
 		[x] RANDOM_COMMON_RELIC,
@@ -214,7 +216,6 @@ __forceinline__ __device__ bool testBadNeow1(const uint64 seed) {
 	return true;
 }
 
-template<uint8 nCardRewards>
 __forceinline__ __device__ bool testBadNeow2(const uint64 seed) {
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
@@ -222,13 +223,13 @@ __forceinline__ __device__ bool testBadNeow2(const uint64 seed) {
 	/*
 		[ ] 0 THREE_CARDS = 0,
 		[ ] 1 ONE_RANDOM_RARE_CARD,
-		[ ] 2 REMOVE_CARD,
+		[x] 2 REMOVE_CARD,
 		[ ] 3 UPGRADE_CARD,
-		[x] 4 TRANSFORM_CARD,
+		[ ] 4 TRANSFORM_CARD,
 		[ ] 5 RANDOM_COLORLESS,
 	*/
 	
-	if (random64Fast<6>(seed0, seed1) != 4) {
+	if (random64Fast<6>(seed0, seed1) != 2) {
 		return false;
 	}
 
@@ -239,11 +240,17 @@ __forceinline__ __device__ bool testBadNeow2(const uint64 seed) {
 		[ ] THREE_ENEMY_KILL,
 		[x] HUNDRED_GOLD,
 	*/
-	uint8 k = random64Fast<5>(seed0, seed1);
-	if ((k != 1) || (k != 4)) {
+
+	static constexpr bool GOOD_NEOW2[5] = {true, false, true, true, false};
+	//uint8 k = random64Fast<5>(seed0, seed1);
+	//if ((k != 1) && (k != 4)) {
+		//return false;
+	//}
+
+	if (GOOD_NEOW2[random64Fast<5>(seed0, seed1)]) {
 		return false;
 	}
-	k = random64Fast<4>(seed0, seed1);
+
 	/*										[ ]			[ ]			[x]			[x]
 										0 HP_LOSS	1 NO_GOLD	2 CURSE		3 DAMAGE
 		[ ] RANDOM_COLORLESS_2,				0			0			0			0
@@ -253,12 +260,41 @@ __forceinline__ __device__ bool testBadNeow2(const uint64 seed) {
 		[x] TWO_FIFTY_GOLD,					[4]			=====		[3]			[4]
 		[ ] TRANSFORM_TWO_CARDS,			5			4			4			5
 		[x] TWENTY_PERCENT_HP_BONUS,		=====		[5]			[5]			[6]
-	*/
 
+		k = 0 (l ~ Unif(6)): false, false, false, false, true, false,
+			{false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, }
+		k = 1 (l ~ Unif(6)): false, false, false, false, false, true, 
+			{false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, }
+		k = 2 (l ~ Unif(6)): false, false, false, true, false, true, 
+			{false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, }
+		k = 3 (l ~ Unif(7)): false, false, false, false, true, false, true, 
+			{false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, }
+	*/
+	
+	/*
+	uint8 k = random64Fast<4>(seed0, seed1);
 	uint8 l = (k == 3) ? random64Fast<7>(seed0, seed1) : random64Fast<6>(seed0, seed1);
 	l = (k == 1) ? (l - 1) : l;
 	l = (k == 2) ? (l + 1) : l;
 	return (l == 4) || (l == 6);
+	*/
+
+	
+	static constexpr bool BAD_NEOW4[4][42] = {
+		{false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, },
+		{false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, },
+		{false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, },
+		{false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, }
+	};
+	//uint8 k = random64Fast<4>(seed0, seed1);
+	//uint8 l = random64Fast<42>(seed0, seed1);
+
+	return BAD_NEOW4[
+		random8Fast<4>(seed0, seed1)
+	][
+		random8Fast<42>(seed0, seed1)
+	];
+	
 }
 
 template<uint8 nCardRewards>
@@ -389,7 +425,8 @@ __forceinline__ __device__ bool testBadIroncladCardsFast(const uint64 seed) {
 template<uint8 nCardRewards>
 __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 
-	constexpr bool W_BAD_CARDS[71] = { false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, true, true, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, true, false, false, true, true, false, false, false, true, true, false, true, true, false, false, false, true, true, false, false, true, true, true, true, true, true, true, false, false, true, false, false, false, true, false, true, false, true, };
+	//constexpr bool W_BAD_CARDS[71] = { false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, true, true, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, true, false, false, true, true, false, false, false, true, true, false, true, true, false, false, false, true, true, false, false, true, true, true, true, true, true, true, false, false, true, false, false, false, true, false, true, false, true, };
+	constexpr bool W_BAD_CARDS[71] = { false,false,false,true,false,false,true,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,false,false,true,false,false,false,true,false,false,false,false,true,false,false,true,true,false,false,false,true,false,false,true,true,false,false,false,true,false,false,false,false,true,true,true,true,false,false,false,false,false,false,false,true,true,false,true,false,false, };
 
 	constexpr uint8 W_NUM_A = 19;
 	constexpr uint8 W_NUM_B = 35;
@@ -781,7 +818,6 @@ struct MapNode {
 		edgeCount = 0;
 	}
 
-
 	__forceinline__ __device__ void addParent(int8 parent) {
 		parents[parentCount++] = parent;
 	}
@@ -1054,11 +1090,29 @@ __device__ bool createSinglePathTestIteration(Map& map, uint64& seed0, uint64& s
 	return true;
 }
 
+__device__ bool createSinglePathTestIterationFinal(Map& map, uint64& seed0, uint64& seed1, int8 startX) {
+	int8 curX = startX;
+	for (int8 curY = 0; curY < searchLength; ++curY) {
+		int8 newX = chooseNewPath(map, seed0, seed1, curX, curY);
+
+		auto& nextNode = map.getNode(newX, curY + 1);
+		if (nextNode.parentCount == 0) {
+			return false;
+		}
+
+		map.getNode(curX, curY).addEdge(newX);
+		map.getNode(newX, curY + 1).addParent(curX);
+		curX = newX;
+	}
+	return true;
+}
+
+template<uint8 nPaths>
 __forceinline__ __device__ bool createPathsSinglePathTest(Map& map, uint64& seed0, uint64& seed1) {
 	int8 firstStartX = random8Fast<7>(seed0, seed1);
 	createSinglePathTestFirstIteration(map, seed0, seed1, firstStartX);
 
-	for (int8 i = 1; i < 6; ++i) {
+	for (int8 i = 1; i < nPaths - 1; ++i) {
 		int8 startX = random8Fast<7>(seed0, seed1);
 
 		while (startX == firstStartX && i == 1) {
@@ -1069,6 +1123,19 @@ __forceinline__ __device__ bool createPathsSinglePathTest(Map& map, uint64& seed
 		if (!res) {
 			return false;
 		}
+	}
+
+	int8 startX = random8Fast<7>(seed0, seed1);
+
+	while (startX == firstStartX && nPaths == 1) {
+		startX = random8Fast<7>(seed0, seed1);
+	}
+
+	//bool res = createSinglePathTestIteration(map, seed0, seed1, startX);
+	bool res = createSinglePathTestIterationFinal(map, seed0, seed1, startX);
+	
+	if (!res) {
+		return false;
 	}
 	return true;
 }
@@ -1245,13 +1312,14 @@ __forceinline__ __device__ int8 passesFirstTest(uint64 seed) {
 	return true;
 }
 
+template<uint8 nPaths>
 __forceinline__ __device__ int8 testSeedForSinglePath(uint64 seed) {
 	if (passesFirstTest(seed)) {
 		//Random mapRng(seed + 1);
 		uint64 seed0 = murmurHash3(seed + 1);
 		uint64 seed1 = murmurHash3(seed0);
 		Map map;
-		return createPathsSinglePathTest(map, seed0, seed1);
+		return createPathsSinglePathTest<nPaths>(map, seed0, seed1);
 		//return true;
 	}
 	else {
@@ -1266,7 +1334,15 @@ __global__ void badMapKernel(TestInfo info, uint64* results) {
 	results[totalIdx] = false;
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
-		if (testSeedForSinglePath(seed)) {
+		
+		if (!testBadNeow2(seed)) {
+			continue;
+		}
+		if (!testBadWatcherCardsFast<2>(seed)) {
+			continue;
+		}
+		
+		if (testSeedForSinglePath<3>(seed)) {
 			results[totalIdx] = seed;
 			return;
 		}
@@ -1385,6 +1461,108 @@ __global__ void fastQNodeKernel(TestInfo info, uint64* results) {
 
 // ************************************************************** END ?-Node Functions
 
+// ************************************************************** BEGIN Custom Mode Functions
+
+__forceinline__ __device__ bool testSneck0andSpecializedBR(const uint64 seed) {
+
+	constexpr uint8 NUM_BR = 143;
+	constexpr uint8 CAI = 140;
+
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+	
+	if (random8Fast<NUM_BR>(seed0, seed1) != CAI) {
+		return false;
+	}
+
+	uint8 num0 = 0;
+
+	uint64 seed2 = murmurHash3(seed + 1);
+	uint64 seed3 = murmurHash3(seed2);
+	
+	for (uint8 i = 0; i < 7; i++) {
+
+		/*
+		if (random8Fast<4>(seed2, seed3) == 0) {
+			num0++;
+		}
+		*/
+		if (random8Fast<4>(seed2, seed3)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+__forceinline__ __device__ bool testSealedBR(const uint64 seed) {
+
+	constexpr uint8 BR_NUM_B = 72;
+	static constexpr bool isGood[BR_NUM_B] = { false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, };
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+	uint8 ctr = 0;
+	uint8 ctrs[6] = {};
+	static constexpr int8 goodInts[6] = {
+		47, 39, 17,
+		7, 59, 34
+	};
+
+	for (uint8 i = 0; i < 30; i++) {
+
+		//first card
+		if (random8Fast<100>(seed0, seed1) > 34) {
+			random8Fast<2>(seed0, seed1);
+			continue;
+		}
+
+		uint8 card = random8Fast<BR_NUM_B>(seed0, seed1);
+		if (isGood[card]) {
+			if (card == goodInts[0]) {
+				ctrs[0]++;
+			}
+			else if (card == goodInts[1]) {
+				ctrs[1]++;
+			}
+			else if (card == goodInts[2]) {
+				ctrs[2]++;
+			}
+			else if (card == goodInts[3]) {
+				ctrs[3]++;
+			}
+			else if (card == goodInts[4]) {
+				ctrs[4]++;
+			}
+			else if (card == goodInts[5]) {
+				ctrs[5]++;
+			}
+		}
+
+	}
+
+	return (ctrs[0] > 0) && (ctrs[1] > 0) && (ctrs[2] > 0) && (ctrs[3] > 0) && (ctrs[4] > 0) && (ctrs[5] > 0);
+}
+
+__global__ void SealedGRBKernel(TestInfo info, uint64* results) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+
+	results[totalIdx] = false;
+	for (; seed < info.end; seed += info.blocks * info.threads)
+	{
+		if (testSneck0andSpecializedBR(seed)) {
+			if (testSealedBR(seed)) {
+				results[totalIdx] = seed;
+				return;
+			}
+		}
+	}
+}
+
+// ************************************************************** BEGIN Custom Mode Functions
+
+
+
 cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
 {
 	const unsigned int totalThreads = info.blocks * info.threads;
@@ -1437,6 +1615,10 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 
 	case FunctionType::FAST_QNODES:
 		fastQNodeKernel << <info.blocks, info.threads >> > (info, dev_results);
+		break;
+
+	case FunctionType::BR_CUSTOM:
+		SealedGRBKernel << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	default:

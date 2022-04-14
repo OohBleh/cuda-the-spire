@@ -21,7 +21,8 @@ enum class FunctionType {
 	BAD_WATCHER,
 	BAD_IRONCLAD,
 	BAD_MAP,
-	FAST_QNODES
+	FAST_QNODES, 
+	BR_CUSTOM
 };
 
 const std::int8_t searchLength = 5;
