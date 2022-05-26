@@ -163,6 +163,23 @@ __global__ void pandoraSeedKernelFast(TestInfo info, bool* results) {
 
 // ************************************************************** BEGIN Fast Cards/Neow Functions
 
+__forceinline__ __device__ bool neowsLament(const uint64 seed) {
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+
+	random64Fast<6>(seed0, seed1);
+
+	/*
+		[ ] THREE_SMALL_POTIONS,
+		[ ] RANDOM_COMMON_RELIC,
+		[ ] TEN_PERCENT_HP_BONUS,
+		[x] THREE_ENEMY_KILL,
+		[ ] HUNDRED_GOLD,
+	*/
+
+	return random64Fast<6>(seed0, seed1) == 3;
+}
+
 template<uint8 nCardRewards>
 __forceinline__ __device__ bool testBadNeow1(const uint64 seed) {
 	uint64 seed0 = murmurHash3(seed);
@@ -228,7 +245,7 @@ __forceinline__ __device__ bool testBadNeow2(const uint64 seed) {
 		[ ] 4 TRANSFORM_CARD,
 		[ ] 5 RANDOM_COLORLESS,
 	*/
-	
+
 	if (random64Fast<6>(seed0, seed1) != 2) {
 		return false;
 	}
@@ -236,12 +253,12 @@ __forceinline__ __device__ bool testBadNeow2(const uint64 seed) {
 	/*
 		[ ] THREE_SMALL_POTIONS,
 		[x] RANDOM_COMMON_RELIC,
-		[ ] TEN_PERCENT_HP_BONUS,
+		[x] TEN_PERCENT_HP_BONUS,
 		[ ] THREE_ENEMY_KILL,
 		[x] HUNDRED_GOLD,
 	*/
 
-	static constexpr bool GOOD_NEOW2[5] = {true, false, true, true, false};
+	static constexpr bool GOOD_NEOW2[5] = {true, false, false, true, false};
 	//uint8 k = random64Fast<5>(seed0, seed1);
 	//if ((k != 1) && (k != 4)) {
 		//return false;
@@ -426,7 +443,7 @@ template<uint8 nCardRewards>
 __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 
 	//constexpr bool W_BAD_CARDS[71] = { false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, true, true, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, true, false, false, true, true, false, false, false, true, true, false, true, true, false, false, false, true, true, false, false, true, true, true, true, true, true, true, false, false, true, false, false, false, true, false, true, false, true, };
-	constexpr bool W_BAD_CARDS[71] = { false,false,false,true,false,false,true,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,false,false,true,false,false,false,true,false,false,false,false,true,false,false,true,true,false,false,false,true,false,false,true,true,false,false,false,true,false,false,false,false,true,true,true,true,false,false,false,false,false,false,false,true,true,false,true,false,false, };
+	constexpr bool W_BAD_CARDS[71] = { false,false,false,true,false,false,true,false,false,false,true,false,false,false,false,false,false,true,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,true,false,false,true,true,false,false,false,true,false,false,true,true,false,false,false,true,false,false,false,false,true,true,true,true,false,false,false,false,false,false,false,false,true,false,true,false,false, };
 
 	constexpr uint8 W_NUM_A = 19;
 	constexpr uint8 W_NUM_B = 35;
@@ -770,7 +787,7 @@ __global__ void badWatcherKernel(TestInfo info, uint64* results) {
 	results[totalIdx] = false;
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
-		if (testBadNeow1<nCardRewards>(seed)) {
+		if (testBadNeow2(seed)) {
 			if (testBadWatcherCardsFast<nCardRewards>(seed)) {
 				results[totalIdx] = seed;
 				return;
@@ -1353,12 +1370,28 @@ __global__ void badMapKernel(TestInfo info, uint64* results) {
 
 // ************************************************************** BEGIN ?-Node Functions
 
-//template<uint8 nQNodes>
+__forceinline__ __device__ bool onlyTreasures(const uint64 seed) {
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+
+	static constexpr bool BAD_ROLLS[9][100] = { true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,false,true,true,true };
+	
+
+	for (uint8 i = 0; i < 7; i++) {
+		//float p = randomFloatFast(seed0, seed1);
+		uint8 roll = static_cast<uint8>(100 * randomFloatFast(seed0, seed1));
+		if (BAD_ROLLS[i][roll]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 __forceinline__ __device__ bool onlyShopsTreasures(const uint64 seed) {
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
-	
-	/*
+
 	uint8 combatThreshold = 10;
 	uint8 shopThreshold = 3;
 	uint8 treasureThreshold = 2;
@@ -1370,7 +1403,7 @@ __forceinline__ __device__ bool onlyShopsTreasures(const uint64 seed) {
 			return false;
 		}
 		roll -= combatThreshold;
-		
+
 		if (roll < shopThreshold) {
 			combatThreshold += 10;
 			shopThreshold = 3;
@@ -1389,57 +1422,24 @@ __forceinline__ __device__ bool onlyShopsTreasures(const uint64 seed) {
 	}
 
 	return true;
-	*/
+}
 
-	static constexpr uint8 NEXT_STATE[74][2] = { 2,1,4,5,6,3,8,9,10,7,8,11,12,7,14,15,16,13,14,17,18,13,14,19,20,13,22,23,24,21,22,25,26,21,22,27,28,21,22,29,30,21,32,33,34,31,32,35,36,31,32,37,38,31,32,39,40,31,32,41,42,31,44,45,46,43,44,47,48,43,44,49,50,43,44,51,52,43,44,53,54,43,44,55,56,43,58,59,60,57,58,61,62,57,58,63,64,57,58,65,66,57,58,67,68,57,58,69,70,57,58,71,72,57,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73,73 };
-	static constexpr uint8 CUTOFF[74][3] = { 10,13,15,20,26,28,20,23,27,30,36,38,30,33,37,30,39,41,30,33,39,40,46,48,40,43,47,40,49,51,40,43,49,40,52,54,40,43,51,50,56,58,50,53,57,50,59,61,50,53,59,50,62,64,50,53,61,50,65,67,50,53,63,60,66,68,60,63,67,60,69,71,60,63,69,60,72,74,60,63,71,60,75,77,60,63,73,60,78,80,60,63,75,70,76,78,70,73,77,70,79,81,70,73,79,70,82,84,70,73,81,70,85,87,70,73,83,70,88,90,70,73,85,70,91,93,70,73,87,80,86,88,80,83,87,80,89,91,80,83,89,80,92,94,80,83,91,80,95,97,80,83,93,80,98,100,80,83,95,80,101,103,80,83,97,80,104,106,80,83,99,90,96,98,90,93,97,90,99,101,90,93,99,90,102,104,90,93,101,90,105,107,90,93,103,90,108,110,90,93,105,90,111,113,90,93,107,90,114,116,90,93,109,90,117,119,90,93,111,100,103,105 };;
+__forceinline__ __device__ bool onlyShopsTreasures2(const uint64 seed) {
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
 	
-	//static constexpr uint64 minVal[100] = { 0,
-		//335545,503317,671089,838861,1006633,1174406,1342178,1509950,1677722,1845494,2013266,2181038,2348811,2516583,2684355,2852127,3019899,3187671,3355444,3523216,3690988,3858760,4026532,4194304,4362076,4529849,4697621,4865393,5033165,5200937,5368709,5536481,5704254,5872026,6039798,6207570,6375342,6543114,6710887,6878659,7046431,7214203,7381975,7549747,7717520,7885292,8053064,8220836,8388608,8556380,8724152,8891925,9059697,9227469,9395241,9563013,9730785,9898558,10066330,10234102,10401874,10569646,10737418,10905190,11072962,11240735,11408507,11576279,11744051,11911823,12079595,12247368,12415140,12582912,12750684,12918456,13086228,13254000,13421773,13589545,13757317,13925089,14092861,14260633,14428406,14596178,14763950,14931722,15099494,15267266,15435039,15602811,15770583,15938355,16106127,16273899,16441672,16609444,16777216, };
-	//static constexpr uint64 maxVal[100] = { 335544,
-		//503316,671088,838860,1006632,1174405,1342177,1509949,1677721,1845493,2013265,2181037,2348810,2516582,2684354,2852126,3019898,3187670,3355443,3523215,3690987,3858759,4026531,4194303,4362075,4529848,4697620,4865392,5033164,5200936,5368708,5536480,5704253,5872025,6039797,6207569,6375341,6543113,6710886,6878658,7046430,7214202,7381974,7549746,7717519,7885291,8053063,8220835,8388607,8556379,8724151,8891924,9059696,9227468,9395240,9563012,9730784,9898557,10066329,10234101,10401873,10569645,10737417,10905189,11072961,11240734,11408506,11576278,11744050,11911822,12079594,12247367,12415139,12582911,12750683,12918455,13086227,13253999,13421772,13589544,13757316,13925088,14092860,14260632,14428405,14596177,14763949,14931721,15099493,15267265,15435038,15602810,15770582,15938354,16106126,16273898,16441671,16609443,16777215,16944986, };
+	static constexpr uint8 NEXT_STATE[73][2] = { 1,2,5,4,3,6,9,8,7,10,11,8,7,12,15,14,13,16,17,14,13,18,19,14,13,20,23,22,21,24,25,22,21,26,27,22,21,28,29,22,21,30,33,32,31,34,35,32,31,36,37,32,31,38,39,32,31,40,41,32,31,42,45,44,43,46,47,44,43,48,49,44,43,50,51,44,43,52,53,44,43,54,55,44,43,56,59,58,57,60,61,58,57,62,63,58,57,64,65,58,57,66,67,58,57,68,69,58,57,70,71,58,57,72,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+	static constexpr uint8 CUTOFFS[73][3] = { 10,13,15,20,23,27,20,26,28,30,33,37,30,36,38,30,33,39,30,39,41,40,43,47,40,46,48,40,43,49,40,49,51,40,43,51,40,52,54,50,53,57,50,56,58,50,53,59,50,59,61,50,53,61,50,62,64,50,53,63,50,65,67,60,63,67,60,66,68,60,63,69,60,69,71,60,63,71,60,72,74,60,63,73,60,75,77,60,63,75,60,78,80,70,73,77,70,76,78,70,73,79,70,79,81,70,73,81,70,82,84,70,73,83,70,85,87,70,73,85,70,88,90,70,73,87,70,91,93,80,83,87,80,86,88,80,83,89,80,89,91,80,83,91,80,92,94,80,83,93,80,95,97,80,83,95,80,98,100,80,83,97,80,101,103,80,83,99,80,104,106,90,93,97,90,96,98,90,93,99,90,99,101,90,93,101,90,102,104,90,93,103,90,105,107,90,93,105,90,108,110,90,93,107,90,111,113,90,93,109,90,114,116,90,93,111,90,117,119 };
 	uint8 currState = 0;
 
 	for (uint8 i = 0; i < 9; i++) {
-		//float p = randomFloatFast(seed0, seed1);
-		//int8 result = ROLL_RESULT[currState][static_cast<int8>(100 * randomFloatFast(seed0, seed1))];
-		//uint8 roll = (uint8)(100 * randomFloatFast(seed0, seed1));
-		
 		
 		uint8 roll = static_cast<uint8>(100 * randomFloatFast(seed0, seed1));
-
-		if (
-			(roll >= CUTOFF[currState][2]) ||
-			(roll < CUTOFF[currState][0])
-		) {
+		if (roll < CUTOFFS[currState][0] || roll >= CUTOFFS[currState][2]) {
 			return false;
 		}
 
-		currState = (roll < CUTOFF[currState][1]) ? NEXT_STATE[currState][0] : NEXT_STATE[currState][1];
-		
-
-		/*
-		uint64 roll = randomPreFloatFast(seed0, seed1);
-		
-		//	d100_roll >= CUTOFF <-->
-		//	roll >= minVal[CUTOFF]
-
-		//	d100_roll < CUTOFF <-->
-		//	roll < minVal[CUTOFF]
-		
-		if (
-			(roll >= minVal[CUTOFF[currState][2]]) ||
-			(roll < minVal[CUTOFF[currState][0]])
-		) {
-			return false;
-		}
-
-		
-		//	d100_roll < CUTOFF <-->
-		//	roll < minVal[CUTOFF]
-		
-		currState = (roll < minVal[CUTOFF[currState][1]]) ? NEXT_STATE[currState][0] : NEXT_STATE[currState][1];
-		*/
+		currState = (roll < CUTOFFS[currState][1]) ? NEXT_STATE[currState][0] : NEXT_STATE[currState][1];
 	}
 	
 	return true;
@@ -1452,9 +1452,11 @@ __global__ void fastQNodeKernel(TestInfo info, uint64* results) {
 	results[totalIdx] = false;
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
-		if (onlyShopsTreasures(seed)) {
-			results[totalIdx] = seed;
-			return;
+		if (onlyTreasures(seed)) {
+			if (neowsLament(seed)) {
+				results[totalIdx] = seed;
+				return;
+			}
 		}
 	}
 }
@@ -1463,15 +1465,16 @@ __global__ void fastQNodeKernel(TestInfo info, uint64* results) {
 
 // ************************************************************** BEGIN Custom Mode Functions
 
-__forceinline__ __device__ bool testSneck0andSpecializedBR(const uint64 seed) {
+__forceinline__ __device__ bool testSneck0andSpecializedRB(const uint64 seed) {
 
 	constexpr uint8 NUM_BR = 143;
-	constexpr uint8 CAI = 140;
+	constexpr uint8 SKIM = 42;
+	//constexpr uint8 CAI = 140;
 
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
 	
-	if (random8Fast<NUM_BR>(seed0, seed1) != CAI) {
+	if (random8Fast<NUM_BR>(seed0, seed1) != SKIM) {
 		return false;
 	}
 
@@ -1495,22 +1498,27 @@ __forceinline__ __device__ bool testSneck0andSpecializedBR(const uint64 seed) {
 	return true;
 }
 
-__forceinline__ __device__ bool testSealedBR(const uint64 seed) {
+__forceinline__ __device__ bool testSealedRB(const uint64 seed) {
 
 	constexpr uint8 BR_NUM_B = 72;
-	static constexpr bool isGood[BR_NUM_B] = { false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, };
+	static constexpr bool isGood[BR_NUM_B] = { false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, };
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
 	uint8 ctr = 0;
 	uint8 ctrs[6] = {};
 	static constexpr int8 goodInts[6] = {
-		47, 39, 17,
-		7, 59, 34
+		11, 43, 23, 42
 	};
 
-	for (uint8 i = 0; i < 30; i++) {
+	static constexpr uint8 IGNORE = 15;
 
-		//first card
+	for (uint8 i = 0; i < IGNORE; i++) {
+		random8Fast<2>(seed0, seed1);
+		random8Fast<2>(seed0, seed1);
+	}
+
+	for (uint8 i = 0; i < 30 - IGNORE; i++) {
+
 		if (random8Fast<100>(seed0, seed1) > 34) {
 			random8Fast<2>(seed0, seed1);
 			continue;
@@ -1530,28 +1538,104 @@ __forceinline__ __device__ bool testSealedBR(const uint64 seed) {
 			else if (card == goodInts[3]) {
 				ctrs[3]++;
 			}
-			else if (card == goodInts[4]) {
-				ctrs[4]++;
+		}
+
+	}
+
+	return (ctrs[0] > 0) && (ctrs[1] > 0) && (ctrs[2] > 0) && (ctrs[3] > 0);
+}
+
+
+
+
+__forceinline__ __device__ bool testSneck0andSpecializedB(const uint64 seed) {
+
+	constexpr uint8 NUM_B = 71;
+	constexpr uint8 CAI = 68;
+	
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+
+	if (random8Fast<NUM_B>(seed0, seed1) != CAI) {
+		return false;
+	}
+
+	uint64 seed2 = murmurHash3(seed + 1);
+	uint64 seed3 = murmurHash3(seed2);
+
+	for (uint8 i = 0; i < 7; i++) {
+		if (random8Fast<4>(seed2, seed3)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+__forceinline__ __device__ bool testSealedB(const uint64 seed) {
+
+	constexpr uint8 B_NUM_B = 36;
+	//static constexpr bool isGood[BR_NUM_B] = { false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, };
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+	uint8 ctrs[2] = {};
+	static constexpr int8 goodInts[2] = {
+		3, 17
+	};
+
+	for (uint8 i = 0; i < 28; i++) {
+		random8Fast<2>(seed0, seed1);
+		random8Fast<2>(seed0, seed1);
+	}
+
+	for (uint8 i = 0; i < 2; i++) {
+		if (random8Fast<100>(seed0, seed1) > 34) {
+			return;
+		}
+		uint8 card = random8Fast<B_NUM_B>(seed0, seed1);
+		//if (isGood[card]) {
+		if (true) {
+			if (card == goodInts[0]) {
+				ctrs[0]++;
 			}
-			else if (card == goodInts[5]) {
-				ctrs[5]++;
+			else if (card == goodInts[1]) {
+				ctrs[1]++;
 			}
 		}
 
 	}
 
-	return (ctrs[0] > 0) && (ctrs[1] > 0) && (ctrs[2] > 0) && (ctrs[3] > 0) && (ctrs[4] > 0) && (ctrs[5] > 0);
+	return (ctrs[0] > 0) && (ctrs[1] > 0);
 }
 
-__global__ void SealedGRBKernel(TestInfo info, uint64* results) {
+
+
+
+__global__ void SealedRBKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
 
 	results[totalIdx] = false;
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
-		if (testSneck0andSpecializedBR(seed)) {
-			if (testSealedBR(seed)) {
+		if (testSneck0andSpecializedRB(seed)) {
+			if (testSealedRB(seed)) {
+				results[totalIdx] = seed;
+				return;
+			}
+		}
+	}
+}
+
+__global__ void SealedBKernel(TestInfo info, uint64* results) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+
+	results[totalIdx] = false;
+	for (; seed < info.end; seed += info.blocks * info.threads)
+	{
+		if (testSneck0andSpecializedB(seed)) {
+			if (testSealedB(seed)) {
 				results[totalIdx] = seed;
 				return;
 			}
@@ -1617,8 +1701,8 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 		fastQNodeKernel << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
-	case FunctionType::BR_CUSTOM:
-		SealedGRBKernel << <info.blocks, info.threads >> > (info, dev_results);
+	case FunctionType::CUSTOM:
+		SealedRBKernel << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	default:
