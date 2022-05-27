@@ -177,7 +177,7 @@ __forceinline__ __device__ bool neowsLament(const uint64 seed) {
 		[ ] HUNDRED_GOLD,
 	*/
 
-	return random64Fast<6>(seed0, seed1) == 3;
+	return random64Fast<5>(seed0, seed1) == 3;
 }
 
 template<uint8 nCardRewards>
