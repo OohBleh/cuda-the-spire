@@ -1684,32 +1684,38 @@ __forceinline__ __device__ bool shardFirst(const uint64 seed) {
 
 
 
-__forceinline__ __device__ bool startsPBox(uint64_t seed) {
+__forceinline__ __device__ bool startsPBox(uint64 seed) {
+	
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
-	// shuffle commons, uncommons, rares, shops
+
 	randomLong(seed0, seed1);
 	randomLong(seed0, seed1);
 	randomLong(seed0, seed1);
 	randomLong(seed0, seed1);
 
-	uint64 shuffleSeed = randomLong(seed0, seed1);
+	seed = randomLong(seed0, seed1);
+
+	
+	// scramble seed
 	seed = (seed ^ JAVA_MULTIPLIER) & JAVA_MASK;
 
 	int size = 22;
 	int K = 5;
 	for (int i = size; i > 1; i--) {
 
+
+
 		seed = (seed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
-		int r = static_cast<std::int32_t>(seed >> (48 - 31));
+		int r = static_cast<int32>(seed >> (48 - 31));
 		int bound = i;
 		int m = bound - 1;
-		if ((bound & m) == 0)
-			r = static_cast<int32_t>(((bound * static_cast<std::uint64_t>(r)) >> 31));
+		if ((bound & m) == 0)  // i.e., bound is a power of 2
+			r = static_cast<int32>(((bound * static_cast<uint64>(r)) >> 31));
 		else {
 			for (int32_t u = r; u - (r = u % bound) + m < 0; ) {
 				seed = (seed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
-				u = static_cast<std::int32_t>(seed >> (48 - 31));
+				u = static_cast<int32>(seed >> (48 - 31));
 			}
 		}
 
@@ -1726,7 +1732,6 @@ __forceinline__ __device__ bool startsPBox(uint64_t seed) {
 	}
 
 	return K < 3;
-
 }
 
 
