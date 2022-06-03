@@ -1673,18 +1673,35 @@ __forceinline__ __device__ bool shardFirst(const uint64 seed) {
 	uint64 shuffleSeed = randomLong(seed0, seed1);
 	shuffleSeed = (shuffleSeed ^ JAVA_MULTIPLIER) & JAVA_MASK;
 	shuffleSeed = (shuffleSeed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
+	
+	uint64 tempSeed = shuffleSeed;
 	//int32 r = static_cast<int32>(shuffleSeed >> (48 - 31));
-	int32 r = static_cast<int32>(shuffleSeed >> 17);
+	int32 r = static_cast<int32>(tempSeed >> 17);
 	//static constexpr int bound = 16;
 	//r = static_cast<int32>(((bound * static_cast<uint64>(r)) >> 31));
 	r = static_cast<int32>(((16 * static_cast<uint64>(r)) >> 31));
-	
+	if (r == 8) {
+		return true;
+	}
+
+	r = static_cast<int32>(tempSeed >> 17);
+	int bound = 17;
+	int m = bound - 1;
+	if ((bound & m) == 0)  // i.e., bound is a power of 2
+		r = static_cast<int32>(((bound * static_cast<uint64>(r)) >> 31));
+	else {
+		for (int32_t u = r; u - (r = u % bound) + m < 0; ) {
+			shuffleSeed = (shuffleSeed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
+			u = static_cast<int32>(shuffleSeed >> (48 - 31));
+		}
+	}
 	return r == 8;
+
 }
 
 
 
-__forceinline__ __device__ bool startsPBox(uint64 seed) {
+__forceinline__ __device__ bool startsPBox(const uint64 seed) {
 	
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
@@ -1694,11 +1711,11 @@ __forceinline__ __device__ bool startsPBox(uint64 seed) {
 	randomLong(seed0, seed1);
 	randomLong(seed0, seed1);
 
-	seed = randomLong(seed0, seed1);
+	uint64 shuffleSeed = randomLong(seed0, seed1);
 
 	
 	// scramble seed
-	seed = (seed ^ JAVA_MULTIPLIER) & JAVA_MASK;
+	shuffleSeed = (shuffleSeed ^ JAVA_MULTIPLIER) & JAVA_MASK;
 
 	int size = 22;
 	int K = 5;
@@ -1706,16 +1723,16 @@ __forceinline__ __device__ bool startsPBox(uint64 seed) {
 
 
 
-		seed = (seed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
-		int r = static_cast<int32>(seed >> (48 - 31));
+		shuffleSeed = (shuffleSeed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
+		int r = static_cast<int32>(shuffleSeed >> (48 - 31));
 		int bound = i;
 		int m = bound - 1;
 		if ((bound & m) == 0)  // i.e., bound is a power of 2
 			r = static_cast<int32>(((bound * static_cast<uint64>(r)) >> 31));
 		else {
 			for (int32_t u = r; u - (r = u % bound) + m < 0; ) {
-				seed = (seed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
-				u = static_cast<int32>(seed >> (48 - 31));
+				shuffleSeed = (shuffleSeed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
+				u = static_cast<int32>(shuffleSeed >> (48 - 31));
 			}
 		}
 
@@ -1884,10 +1901,10 @@ __forceinline__ __device__ bool hyperbeamFirstShop(const uint64 seed) {
 	
 	// do some stuff to see if Blasphemy is generated at Act I boss reward
 	// dud rarity roll
-	// random64Fast<2>(seed0, seed1);
+	random64Fast<2>(seed0, seed1);
 	
 	// rare Shard card roll
-	if (random64Fast<84>(seed0, seed1) != 56) {
+	if (random64Fast<77>(seed0, seed1) != 49) {
 		//return false;
 	}
 
