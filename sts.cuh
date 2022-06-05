@@ -28,7 +28,8 @@ enum class FunctionType {
 	BAD_MAP,
 	FAST_QNODES, 
 	CUSTOM, 
-	SHARD
+	SHARD,
+	ZYZZ
 };
 
 const std::int8_t searchLength = 5;

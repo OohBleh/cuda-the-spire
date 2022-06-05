@@ -18,20 +18,41 @@ __forceinline__ __device__ bool testPandoraSeed(const uint64 seed) {
 	return true;
 }
 
-template<uint8 n, uint8 limit>
-__global__ void pandoraSeedKernel(TestInfo info, bool* results) {
-	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
-	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+/*
+zyzz wants a seed that:
+	(1) gets 6 copies of Vault
+	(2) gets 1 copy of Alpha
+	(3) swaps into Pandora's Box
+	(4) starts with Stone Calendar
+	(5) starts with Mercury Hourglass
 
-	results[totalIdx] = false;
-	for (; seed < info.end; seed += info.blocks * info.threads)
-	{
-		if (testPandoraSeed<n, limit>(seed)) {
-			results[totalIdx] = true;
-			return;
+here, we filter for (1) & (2)
+*/
+
+__forceinline__ __device__ bool zyzzTest(const uint64 seed) {
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+
+	uint8 num;
+	uint8 nVault = 0;
+	uint8 nAlpha = 0;
+
+	for (uint8 i = 0; i < 7; i++) {
+		num = random8Fast<71>(seed0, seed1);
+		if (num == 63) {
+			nVault++;
+		}
+		else if (num == 64) {
+			nAlpha = 1;
+		}
+
+		if (nVault + nAlpha < i) {
+			return false;
 		}
 	}
+	return true; // nVault + nAlpha > 5;
 }
+
 
 // ************************************************************** END Accurate Pandora Functions
 
