@@ -50,7 +50,7 @@ __forceinline__ __device__ bool zyzzTest(const uint64 seed) {
 			return false;
 		}
 	}
-	return true; // nVault + nAlpha > 5;
+	return nVault + nAlpha > 6;
 }
 
 
