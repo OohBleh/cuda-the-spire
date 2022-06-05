@@ -101,3 +101,35 @@ __forceinline__ __device__ uint64 randomLong(uint64& seed0, uint64& seed1) {
 }
 
 // ************************************************************** EMD LIBGDX Functions
+
+
+// ************************************************************** BEGIN JAVA Functions
+
+static constexpr uint64 JAVA_MULTIPLIER = 0x5DEECE66DULL;
+static constexpr uint64 JAVA_ADDEND = 0xBULL;
+static constexpr uint64 JAVA_MASK = (1ULL << 48) - 1;
+
+__forceinline__ __device__ void javaScramble(uint64& javaSeed) {
+	javaSeed = (javaSeed ^ JAVA_MULTIPLIER) & JAVA_MASK;
+}
+
+template<uint8 bits>
+__forceinline__ __device__ int32 javaNext(uint64& javaSeed) {
+	javaSeed = (javaSeed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
+	return static_cast<int32>(javaSeed >> (48 - bits));
+}
+
+__forceinline__ __device__ uint8 javaInt8(uint64& javaSeed, const uint8 bound) {
+	int32 r = javaNext<31>(javaSeed);
+	uint8 m = bound - 1;
+	if ((bound & m) == 0)  // i.e., bound is a power of 2
+		r = static_cast<int32>(((bound * static_cast<uint64>(r)) >> 31));
+	else {
+		for (int32 u = r; u - (r = u % bound) + m < 0;) {
+			u = javaNext<31>(javaSeed);
+		}
+	}
+	return static_cast<uint8>(r);
+}
+
+// ************************************************************** END JAVA Functions

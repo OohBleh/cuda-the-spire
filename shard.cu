@@ -1,8 +1,20 @@
 #include "rng.cuh"
 
-static constexpr uint64 JAVA_MULTIPLIER = 0x5DEECE66DULL;
-static constexpr uint64 JAVA_ADDEND = 0xBULL;
-static constexpr uint64 JAVA_MASK = (1ULL << 48) - 1;
+__forceinline__ __device__ bool shardFirst2(const uint64 seed) {
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+
+	// shuffle commons, uncommons, rares
+	randomLong(seed0, seed1);
+	randomLong(seed0, seed1);
+	randomLong(seed0, seed1);
+
+	uint64 shuffleSeed = randomLong(seed0, seed1);
+	javaScramble(shuffleSeed);
+
+
+}
+
 
 __forceinline__ __device__ bool shardFirst(const uint64 seed) {
 
@@ -15,12 +27,21 @@ __forceinline__ __device__ bool shardFirst(const uint64 seed) {
 	randomLong(seed0, seed1);
 
 	uint64 shuffleSeed = randomLong(seed0, seed1);
-	shuffleSeed = (shuffleSeed ^ JAVA_MULTIPLIER) & JAVA_MASK;
+	//shuffleSeed = (shuffleSeed ^ JAVA_MULTIPLIER) & JAVA_MASK;
+	javaScramble(shuffleSeed);
+	
+	
+	/*
 	shuffleSeed = (shuffleSeed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
 
 	uint64 tempSeed = shuffleSeed;
 	//int32 r = static_cast<int32>(shuffleSeed >> (48 - 31));
 	int32 r = static_cast<int32>(tempSeed >> 17);
+	*/
+	
+	int32 r = javaNext<31>(shuffleSeed);
+	uint64 tempSeed = shuffleSeed;
+	
 	//static constexpr int bound = 16;
 	//r = static_cast<int32>(((bound * static_cast<uint64>(r)) >> 31));
 	r = static_cast<int32>(((16 * static_cast<uint64>(r)) >> 31));
@@ -29,9 +50,11 @@ __forceinline__ __device__ bool shardFirst(const uint64 seed) {
 	}
 
 	r = static_cast<int32>(tempSeed >> 17);
-	int bound = 17;
-	int m = bound - 1;
-	if ((bound & m) == 0)  // i.e., bound is a power of 2
+	static constexpr uint8 bound = 17;
+	static constexpr uint8 m = bound - 1;
+
+	/*
+	if (false)  // i.e., bound is a power of 2
 		r = static_cast<int32>(((bound * static_cast<uint64>(r)) >> 31));
 	else {
 		for (int32_t u = r; u - (r = u % bound) + m < 0; ) {
@@ -39,6 +62,17 @@ __forceinline__ __device__ bool shardFirst(const uint64 seed) {
 			u = static_cast<int32>(shuffleSeed >> (48 - 31));
 		}
 	}
+	*/
+
+	for (int32 u = r; u - (r = u % bound) + m < 0; ) {
+		/*
+		shuffleSeed = (shuffleSeed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
+		u = static_cast<int32>(shuffleSeed >> (48 - 31));
+		*/
+
+		u = javaNext<31>(shuffleSeed);
+	}
+
 	return r == 8;
 
 }
