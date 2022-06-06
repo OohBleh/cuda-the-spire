@@ -133,3 +133,28 @@ __forceinline__ __device__ uint8 javaInt8(uint64& javaSeed, const uint8 bound) {
 }
 
 // ************************************************************** END JAVA Functions
+
+
+// ************************************************************** END JAVA Functions
+
+template<uint8 poolSize, uint8 target>
+__forceinline__ __device__ bool javaInt8(uint64& javaSeed, const uint8 bound) {
+	
+
+	javaScramble(javaSeed);
+	uint8 targetPos = target;
+	
+	for (uint8 i = poolSize; i > 1; i--) {
+		uint8 k = javaInt8(javaSeed, i);
+		if (k == targetPos) {
+			return false;
+		}
+		if (i - 1 == targetPos) {
+			targetPos = k;
+		}
+	}
+
+	return targetPos == 0;
+}
+
+// ************************************************************** END JAVA Functions
