@@ -49,12 +49,12 @@ __forceinline__ __device__ bool zyzzTest(const uint64 seed) {
 		}
 
 		if (nVault + nAlpha < i) {
-			//return false;
+			return false;
 		}
 	}
 	
 	if (nVault + nAlpha <= 6) {
-		//return false;
+		return false;
 	}
 
 	// hourglass & stone calendar
