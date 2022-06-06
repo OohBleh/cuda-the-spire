@@ -30,6 +30,8 @@ here, we filter for (1) & (2)
 */
 
 __forceinline__ __device__ bool zyzzTest(const uint64 seed) {
+	
+	// vault & alpha
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
 
@@ -47,10 +49,55 @@ __forceinline__ __device__ bool zyzzTest(const uint64 seed) {
 		}
 
 		if (nVault + nAlpha < i) {
-			return false;
+			//return false;
 		}
 	}
-	return nVault + nAlpha > 6;
+	
+	if (nVault + nAlpha <= 6) {
+		//return false;
+	}
+
+	// hourglass & stone calendar
+	seed0 = murmurHash3(seed);
+	seed1 = murmurHash3(seed0);
+
+	// common relics
+	randomLong(seed0, seed1);
+
+	// uncommon relics: MH is 27 of 30
+	uint64 javaSeed = randomLong(seed0, seed1);
+	if (!isFirstAfterShuffle<30, 27>(javaSeed)) {
+		return false;
+	}
+
+	// rare relics: SC is 5 of 27
+	javaSeed = randomLong(seed0, seed1);
+	if (!isFirstAfterShuffle<27, 5>(javaSeed)) {
+		return false;
+	}
+
+	// shop relics
+	randomLong(seed0, seed1);
+
+	/*
+	boss relics:
+		PBox is 5 of 21
+		Holy Water is 19 of 21
+
+		test for Holy Water in 1st position
+		then test for PBox position
+	*/
+	javaSeed = randomLong(seed0, seed1);
+	return isFirstAfterShuffle<21, 5>(javaSeed);
+	
+	// is shufflePosition bugged?
+	/*
+	uint64 javaSeedClone = javaSeed;
+	uint8 pboxPos = shufflePosition<21, 5>(javaSeedClone);
+	
+	//return (isFirstAfterShuffle<21, 19>(javaSeed)) ? (pboxPos == 1) : (pboxPos == 0);
+	return pboxPos == 0;
+	*/
 }
 
 

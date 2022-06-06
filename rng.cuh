@@ -138,12 +138,12 @@ __forceinline__ __device__ uint8 javaInt8(uint64& javaSeed, const uint8 bound) {
 // ************************************************************** END JAVA Functions
 
 template<uint8 poolSize, uint8 target>
-__forceinline__ __device__ bool javaInt8(uint64& javaSeed, const uint8 bound) {
-	
+__forceinline__ __device__ bool isFirstAfterShuffle(uint64& javaSeed) {
+
 
 	javaScramble(javaSeed);
 	uint8 targetPos = target;
-	
+
 	for (uint8 i = poolSize; i > 1; i--) {
 		uint8 k = javaInt8(javaSeed, i);
 		if (k == targetPos) {
@@ -155,6 +155,27 @@ __forceinline__ __device__ bool javaInt8(uint64& javaSeed, const uint8 bound) {
 	}
 
 	return targetPos == 0;
+}
+
+// this might be bugged... 
+template<uint8 poolSize, uint8 target>
+__forceinline__ __device__ uint8 shufflePosition(uint64& javaSeed) {
+
+
+	javaScramble(javaSeed);
+	uint8 targetPos = target;
+
+	for (uint8 i = poolSize; i > 1; i--) {
+		uint8 k = javaInt8(javaSeed, i);
+		if (k == targetPos) {
+			targetPos = i - 1;
+		}
+		if (i - 1 == targetPos) {
+			targetPos = k;
+		}
+	}
+
+	return targetPos;
 }
 
 // ************************************************************** END JAVA Functions
