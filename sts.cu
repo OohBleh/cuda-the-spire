@@ -291,8 +291,7 @@ __global__ void shardKernel(TestInfo info, uint64* results) {
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
 		if (
-			neowsLament(seed) 
-			&& shardFirst(seed) 
+			shardNeowFirst(seed)
 			&& hyperbeamFirstShop(seed)
 			&& startsPBox(seed)
 		) {

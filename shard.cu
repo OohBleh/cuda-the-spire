@@ -16,14 +16,19 @@ __forceinline__ __device__ bool shardFirst2(const uint64 seed) {
 }
 
 
-__forceinline__ __device__ bool shardFirst(const uint64 seed) {
+__forceinline__ __device__ bool shardNeowFirst(const uint64 seed) {
 
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
 
 	// shuffle commons, uncommons, rares
+	// use 2nd RNG call to check for Neow's Lament
 	randomLong(seed0, seed1);
-	randomLong(seed0, seed1);
+
+	if (random64Fast<5>(seed0, seed1) != 3) {
+		return false;
+	}
+
 	randomLong(seed0, seed1);
 
 	uint64 shuffleSeed = randomLong(seed0, seed1);
