@@ -37,6 +37,7 @@ const std::int8_t searchLength = 5;
 struct TestInfo {
 	unsigned int blocks;
 	unsigned int threads;
+	unsigned int width;
 	std::uint64_t start;
 	std::uint64_t end;
 

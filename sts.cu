@@ -285,9 +285,14 @@ __global__ void SealedBKernel(TestInfo info, uint64* results) {
 
 __global__ void shardKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	const unsigned int width = info.width;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+	uint8 ctr = 0;
 
-	results[totalIdx] = false;
+	for (int i = 0; i < width; i++) {
+		results[width * totalIdx + i] = false;
+	}
+	
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
 		if (
@@ -295,8 +300,13 @@ __global__ void shardKernel(TestInfo info, uint64* results) {
 			&& hyperbeamFirstShop(seed)
 			&& startsPBox(seed)
 		) {
-			results[totalIdx] = seed;
-			return;
+			//results[totalIdx] = seed;
+			results[width * totalIdx + ctr] = seed;
+			ctr++;
+			if (ctr == width) {
+				return;
+			}
+			//return;
 		}
 	}
 }
@@ -308,6 +318,7 @@ __global__ void shardKernel(TestInfo info, uint64* results) {
 cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
 {
 	const unsigned int totalThreads = info.blocks * info.threads;
+	const unsigned int width = info.width;
 	uint64* dev_results = nullptr;
 	cudaError_t cudaStatus;
 
@@ -318,7 +329,7 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 		goto Error;
 	}
 
-	cudaStatus = cudaMalloc((void**)&dev_results, totalThreads * sizeof(uint64));
+	cudaStatus = cudaMalloc((void**)&dev_results, width * totalThreads * sizeof(uint64));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMalloc failed!");
 		goto Error;
@@ -394,7 +405,7 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 	}
 
 	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(results, dev_results, totalThreads * sizeof(uint64), cudaMemcpyDeviceToHost);
+	cudaStatus = cudaMemcpy(results, dev_results, width * totalThreads * sizeof(uint64), cudaMemcpyDeviceToHost);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed!");
 		goto Error;

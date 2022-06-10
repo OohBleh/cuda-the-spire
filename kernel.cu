@@ -12,6 +12,7 @@
 #include <memory>
 
 #include <time.h>
+#include <fstream>
 
 #include "sts.cuh"
 
@@ -44,7 +45,14 @@ std::string getTime() {
 	return timeStr;
 }
 
-int runPandorasSearch(const unsigned int blocks, const unsigned int threads, const std::uint64_t batchSizeBillion, const std::uint64_t startSeed, const char* filename) {
+int runPandorasSearch(
+	const unsigned int blocks, 
+	const unsigned int threads,
+	const unsigned int width,
+	const std::uint64_t batchSizeBillion,
+	const std::uint64_t startSeed, 
+	const char* filename
+) {
 	//uint64 searchCountTotal = static_cast<int64>(batchSizeBillion * 1000000000ULL);
 	uint64 searchCountTotal = static_cast<int64>(batchSizeBillion * ONE_BILLION);
 	const unsigned int totalThreads = threads * blocks;
@@ -55,12 +63,13 @@ int runPandorasSearch(const unsigned int blocks, const unsigned int threads, con
 	TestInfo info{};
 	info.blocks = blocks;
 	info.threads = threads;
+	info.width = width;
 	info.start = startSeed;
 	info.end = info.start + searchCountTotal;
 
 	cudaError_t cudaStatus;
 	std::string time;
-	std::unique_ptr<uint64_t[]> results(new uint64_t[totalThreads]);
+	std::unique_ptr<uint64_t[]> results(new uint64_t[width * totalThreads]);
 
 	uint64 foundThreads = 0;
 
@@ -70,13 +79,13 @@ int runPandorasSearch(const unsigned int blocks, const unsigned int threads, con
 		//outStream << time << " " << info.start << " " << info.end << " " << std::endl;
 		std::cout << time << " " << info.start << " " << info.end << " " << std::endl;
 
-		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::ZYZZ, results.get());
+		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::SHARD, results.get());
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "testSeedsWithCuda failed!");
 			return 1;
 		}
 
-		for (int i = 0; i < totalThreads; i++) {
+		for (int i = 0; i < width * totalThreads; i++) {
 			if (results[i]) {
 				/*
 				outStream << info.start + i << " " << info.end << " " << totalThreads << " seed = " << results[i] << '\n';
@@ -269,15 +278,33 @@ int main(int argc, const char* argv[])
 	return runPandorasSearch(blocks, threads, batchSizeBillion, start, filename);
 	*/
 
-	int blocks = 24;//std::stoi(argv[1]);
-	int threads = 128;//std::stoi(argv[2]);
-	std::uint64_t batchSizeBillion = 1;//std::stoull(argv[3]);
-	std::uint64_t start = 0 * batchSizeBillion * ONE_BILLION;//std::stoull(argv[4]);
+	std::ifstream f;
+	f.open("OPTIONS.txt");
+	std::string PARAM_NAMES[5] = {
+		"blocks           ", 
+		"threads          ", 
+		"width            ", 
+		"batchSizeBillions", 
+		"startBatch       "
+	};
+	unsigned int PARAMS[5];
+	for (int i = 0; i < 5; i++) {
+		f >> PARAMS[i];
+		std::cout << PARAM_NAMES[i] << "\t" << PARAMS[i] << '\n';
+	}
+	f.close();
+	std::cout << '\n';
+
+	int blocks = PARAMS[0];//24;//std::stoi(argv[1]);
+	int threads = PARAMS[1]; //128;//std::stoi(argv[2]);
+	int width = PARAMS[2]; //8;
+	std::uint64_t batchSizeBillion = PARAMS[3]; // 1;//std::stoull(argv[3]);
+	std::uint64_t start = PARAMS[4] * batchSizeBillion * ONE_BILLION; // 0 * batchSizeBillion* ONE_BILLION;//std::stoull(argv[4]);
 	//auto filename = "out.txt"; //argv[5];
 
 	std::string fName = "results/out-" + std::to_string(time(NULL)) + ".txt";
 	const char* filename = fName.c_str(); //argv[5];
 
-	return runPandorasSearch(blocks, threads, batchSizeBillion, start, filename);
+	return runPandorasSearch(blocks, threads, width, batchSizeBillion, start, filename);
 
 }
