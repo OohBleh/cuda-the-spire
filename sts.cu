@@ -7,6 +7,10 @@
 #include "custom.cu"
 #include "shard.cu"
 
+
+
+
+
 // ************************************************************** BEGIN PBox Kernel(s)
 
 template<uint8 n, uint8 limit>
@@ -209,12 +213,12 @@ __global__ void badMapKernel(TestInfo info, uint64* results) {
 	{
 		
 		if (!testBadNeow2(seed)) {
-			continue;
+continue;
 		}
 		if (!testBadWatcherCardsFast<2>(seed)) {
 			continue;
 		}
-		
+
 		if (testSeedForSinglePath<3>(seed)) {
 			results[totalIdx] = seed;
 			return;
@@ -292,14 +296,15 @@ __global__ void shardKernel(TestInfo info, uint64* results) {
 	for (int i = 0; i < width; i++) {
 		results[width * totalIdx + i] = false;
 	}
-	
+
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
 		if (
 			shardNeowFirst(seed)
 			&& hyperbeamFirstShop(seed)
 			&& startsPBox(seed)
-		) {
+			) {
+			/*
 			//results[totalIdx] = seed;
 			results[width * totalIdx + ctr] = seed;
 			ctr++;
@@ -307,6 +312,10 @@ __global__ void shardKernel(TestInfo info, uint64* results) {
 				return;
 			}
 			//return;
+			*/
+			if (writeResults(totalIdx, width, seed, ctr, results)) {
+				return;
+			}
 		}
 	}
 }

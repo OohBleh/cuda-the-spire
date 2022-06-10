@@ -47,4 +47,20 @@ struct TestInfo {
 
 cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results);
 
+
+// ************************************************************** BEGIN Utility Function(s)
+
+__forceinline__ __device__ bool writeResults(
+	const unsigned int totalIdx,
+	const unsigned int width,
+	const uint64 seed,
+	uint8& ctr,
+	uint64* results
+) {
+	results[width * totalIdx + ctr] = seed;
+	ctr++;
+	return ctr == width;
+}
+// ************************************************************** END Utility Function(s)
+
 #endif // !STS_CUH
