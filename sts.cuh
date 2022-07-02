@@ -29,7 +29,8 @@ enum class FunctionType {
 	FAST_QNODES, 
 	CUSTOM, 
 	SHARD,
-	ZYZZ
+	ZYZZ,
+	SILENT_TAS
 };
 
 const std::int8_t searchLength = 5;

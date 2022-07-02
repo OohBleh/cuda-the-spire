@@ -51,7 +51,8 @@ int runPandorasSearch(
 	const unsigned int width,
 	const std::uint64_t batchSizeBillion,
 	const std::uint64_t startSeed, 
-	const char* filename
+	const char* filename, 
+	const uint8 verbosity
 ) {
 	//uint64 searchCountTotal = static_cast<int64>(batchSizeBillion * 1000000000ULL);
 	uint64 searchCountTotal = static_cast<int64>(batchSizeBillion * ONE_BILLION);
@@ -73,13 +74,14 @@ int runPandorasSearch(
 
 	uint64 foundThreads = 0;
 
+	int nPrints = 0;
 
 	while (true) {
 		time = getTime();
 		//outStream << time << " " << info.start << " " << info.end << " " << std::endl;
 		std::cout << time << " " << info.start << " " << info.end << " " << std::endl;
 
-		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::SHARD, results.get());
+		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::SILENT_TAS, results.get());
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "testSeedsWithCuda failed!");
 			return 1;
@@ -94,8 +96,10 @@ int runPandorasSearch(
 				++foundThreads; 
 				
 				outStream << results[i] << '\n';
-				//std::cout << results[i] << "    " << foundThreads << '\n';
-				
+				if (verbosity && nPrints < 50) {
+					std::cout << getString(results[i]) << '\n';
+					nPrints++;
+				}
 			}
 		}
 
@@ -103,6 +107,10 @@ int runPandorasSearch(
 		
 		info.start += searchCountTotal;
 		info.end += searchCountTotal;
+
+		if (verbosity > 1) {
+			return 0;
+		}
 	}
 
 	cudaStatus = cudaDeviceReset();
@@ -280,15 +288,16 @@ int main(int argc, const char* argv[])
 
 	std::ifstream f;
 	f.open("OPTIONS.txt");
-	std::string PARAM_NAMES[5] = {
+	std::string PARAM_NAMES[6] = {
 		"blocks           ", 
 		"threads          ", 
 		"width            ", 
 		"batchSizeBillions", 
-		"startBatch       "
+		"startBatch       ", 
+		"verbosity        "
 	};
-	unsigned int PARAMS[5];
-	for (int i = 0; i < 5; i++) {
+	unsigned int PARAMS[6];
+	for (int i = 0; i < 6; i++) {
 		f >> PARAMS[i];
 		std::cout << PARAM_NAMES[i] << "\t" << PARAMS[i] << '\n';
 	}
@@ -305,6 +314,6 @@ int main(int argc, const char* argv[])
 	std::string fName = "results/out-" + std::to_string(time(NULL)) + ".txt";
 	const char* filename = fName.c_str(); //argv[5];
 
-	return runPandorasSearch(blocks, threads, width, batchSizeBillion, start, filename);
+	return runPandorasSearch(blocks, threads, width, batchSizeBillion, start, filename, PARAMS[5]);
 
 }

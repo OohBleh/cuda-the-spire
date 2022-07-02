@@ -6,7 +6,7 @@
 #include "qnodes.cu"
 #include "custom.cu"
 #include "shard.cu"
-
+#include "silent_tas.cu"
 
 
 
@@ -303,6 +303,43 @@ __global__ void shardKernel(TestInfo info, uint64* results) {
 			shardNeowFirst(seed)
 			&& hyperbeamFirstShop(seed)
 			&& startsPBox(seed)
+		) {
+			/*
+			//results[totalIdx] = seed;
+			results[width * totalIdx + ctr] = seed;
+			ctr++;
+			if (ctr == width) {
+				return;
+			}
+			//return;
+			*/
+			if (writeResults(totalIdx, width, seed, ctr, results)) {
+				return;
+			}
+		}
+	}
+}
+
+// ************************************************************** END Shard Kernel(s)
+// 
+// ************************************************************** Begin TAS Kernel(s)
+
+__global__ void tasKernel(TestInfo info, uint64* results) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	const unsigned int width = info.width;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+	uint8 ctr = 0;
+
+	for (int i = 0; i < width; i++) {
+		results[width * totalIdx + i] = false;
+	}
+
+	for (; seed < info.end; seed += info.blocks * info.threads)
+	{
+		if (
+			juzuNeowSerpent(seed)
+			&& finaleFirstShop(seed)
+			&& startsPBox(seed)
 			) {
 			/*
 			//results[totalIdx] = seed;
@@ -321,7 +358,6 @@ __global__ void shardKernel(TestInfo info, uint64* results) {
 }
 
 // ************************************************************** END Shard Kernel(s)
-
 
 
 cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
@@ -389,6 +425,10 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 
 	case FunctionType::ZYZZ:
 		zyzzKernel << <info.blocks, info.threads >> > (info, dev_results);
+		break;
+
+	case FunctionType::SILENT_TAS:
+		tasKernel << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	default:
