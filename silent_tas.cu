@@ -131,8 +131,7 @@ __forceinline__ __device__ bool finaleFirstShop(const uint64 seed) {
 
 	// finale is card 1 (0) or card 2 (1) in the shop
 	uint8 finalePosition = (card1 == 2) ? 0 : 1;
-	return true;
-
+	
 	// is Liars Game first event?
 	// is finale discounted?
 	seed0 = murmurHash3(seed);

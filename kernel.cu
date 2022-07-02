@@ -96,7 +96,7 @@ int runPandorasSearch(
 				++foundThreads; 
 				
 				outStream << results[i] << '\n';
-				if (verbosity && nPrints < 50) {
+				if (verbosity && nPrints < 20) {
 					std::cout << getString(results[i]) << '\n';
 					nPrints++;
 				}
