@@ -157,6 +157,26 @@ __forceinline__ __device__ bool isFirstAfterShuffle(uint64& javaSeed) {
 	return targetPos == 0;
 }
 
+template<uint8 poolSize, uint8 target>
+__forceinline__ __device__ bool isLastAfterShuffle(uint64& javaSeed) {
+
+
+	javaScramble(javaSeed);
+	uint8 targetPos = target;
+
+	for (uint8 i = poolSize; i > 1; i--) {
+		uint8 k = javaInt8(javaSeed, i);
+		if (k == targetPos) {
+			return false;
+		}
+		if (i - 1 == targetPos) {
+			targetPos = k;
+		}
+	}
+
+	return targetPos == 0;
+}
+
 // this might be bugged... 
 template<uint8 poolSize, uint8 target>
 __forceinline__ __device__ uint8 shufflePosition(uint64& javaSeed) {

@@ -12,23 +12,48 @@ __forceinline__ __device__ bool juzuNeowSerpent(const uint64 seed) {
 	uint64 shuffleSeed = randomLong(seed0, seed1);
 	javaScramble(shuffleSeed);
 
+	static constexpr bool JUZU_MANIP = true;
+	if (JUZU_MANIP) {
+		int32 r = javaNext<31>(shuffleSeed);
+		uint64 tempSeed = shuffleSeed;
 
-	int32 r = javaNext<31>(shuffleSeed);
-	uint64 tempSeed = shuffleSeed;
+		r = static_cast<int32>(tempSeed >> 17);
 
-	r = static_cast<int32>(tempSeed >> 17);
-	static constexpr uint8 bound = 30;
-	static constexpr uint8 m = bound - 1;
+		// test for Juzu with 2 extra common unlocks (24/32)
+		int32 s = static_cast<int32>(((32 * static_cast<uint64>(r)) >> 31));
+		if (s != 24) {
 
-	for (int32 u = r; u - (r = u % bound) + m < 0; ) {
-		u = javaNext<31>(shuffleSeed);
+			// Juzu with 0, 1, or 3 extra common unlocks (22/30, 23/31, 25/33)
+			static constexpr uint16 bound = 10230;
+			static constexpr uint16 m = bound - 1;
+
+			for (int32 u = r; u - (r = u % bound) + m < 0; ) {
+				u = javaNext<31>(shuffleSeed);
+			}
+
+			if (r % 30 != 22 && r % 31 != 23 && r % 33 != 25) {
+				return false;
+			}
+		}
 	}
+	
+	else{
+		int32 r = javaNext<31>(shuffleSeed);
+		uint64 tempSeed = shuffleSeed;
 
-	// Juzu is position 22 of 30
-	if (r != 22) {
-		return false;
+		r = static_cast<int32>(tempSeed >> 17);
+		static constexpr uint8 bound = 30;
+		static constexpr uint8 m = bound - 1;
+
+		for (int32 u = r; u - (r = u % bound) + m < 0; ) {
+			u = javaNext<31>(shuffleSeed);
+		}
+
+		// Juzu is position 22 of 30
+		if (r != 22) {
+			return false;
+		}
 	}
-
 	// Neow is 3 (mod 5)
 	if (random8Fast<5>(seed0, seed1) != 3) {
 		return false;

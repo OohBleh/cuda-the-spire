@@ -81,7 +81,7 @@ int runPandorasSearch(
 		//outStream << time << " " << info.start << " " << info.end << " " << std::endl;
 		std::cout << time << " " << info.start << " " << info.end << " " << std::endl;
 
-		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::IRONCLAD_TAS, results.get());
+		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::SILENT_TAS, results.get());
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "testSeedsWithCuda failed!");
 			return 1;
