@@ -6,3 +6,5 @@
 *.fatbin
 
 OPTIONS.txt
+.*
+x64*
