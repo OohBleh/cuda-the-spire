@@ -337,10 +337,10 @@ __global__ void tasKernel(TestInfo info, uint64* results) {
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
 		if (
-			juzuNeowSerpent(seed)
+			juzuNeowFirstEvent<5, 9, 0>(seed)
 			&& finaleFirstShop(seed)
 			&& startsPBox(seed)
-			) {
+		) {
 			/*
 			//results[totalIdx] = seed;
 			results[width * totalIdx + ctr] = seed;
@@ -370,8 +370,8 @@ __global__ void tasKernel2(TestInfo info, uint64* results) {
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
 		if (
-			juzuNeowGoldenShrineShard(seed)
-			&& shrineShopWhirlwind(seed)
+			juzuNeowFirstEvent<1, 13, 1>(seed)
+			&& shrineShop(seed)
 			&& startsPBox(seed)
 		) {
 			if (writeResults(totalIdx, width, seed, ctr, results)) {
