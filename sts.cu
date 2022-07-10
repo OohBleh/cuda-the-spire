@@ -371,7 +371,7 @@ __global__ void tasKernel2(TestInfo info, uint64* results) {
 	{
 		if (
 			juzuNeowFirstEvent<1, 13, 1>(seed)
-			&& shrineShop(seed)
+			&& shrineShop<false>(seed)
 			&& startsPBox(seed)
 		) {
 			if (writeResults(totalIdx, width, seed, ctr, results)) {

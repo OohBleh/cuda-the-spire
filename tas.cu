@@ -200,6 +200,7 @@ __forceinline__ __device__ bool finaleFirstShop(const uint64 seed) {
 
 // ************************************************************** BEGIN Ironclad TAS functions
 
+template<bool shop2nd>
 __forceinline__ __device__ bool shrineShop(const uint64 seed) {
 
 	uint64 seed0 = murmurHash3(seed);
@@ -211,10 +212,17 @@ __forceinline__ __device__ bool shrineShop(const uint64 seed) {
 		return false;
 	}
 
-	// 1st ?-node is a shrine (don't force 2nd ?-node to be a shop)
+	// 1st ?-node is a shrine (force 2nd ?-node to be a shop?)
 	p = randomFloatFast(seed0, seed1);
-	if (p > 0.25 || p < 0.2) {
-		return false;
+	if (shop2nd){
+		if (p > 0.25 || p < 0.2) {
+			return false;
+		}
+	}
+	else {
+		if (p > 0.25) {
+			return false;
+		}
 	}
 	
 	return true;
