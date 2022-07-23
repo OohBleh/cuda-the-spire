@@ -45,6 +45,18 @@ std::string getTime() {
 	return timeStr;
 }
 
+inline std::string printWithCommas(uint64 seed) {
+	std::string temp = std::to_string(seed);
+	uint8 nLen = temp.size();
+	temp.reserve((nLen - 1) / 3 + nLen);
+	for (uint8 i = 1; i <= (nLen - 1) / 3; i++) {
+		temp.insert(nLen - i * 3, 1, ',');
+	}
+	return temp;
+}
+
+static constexpr bool DELTA_PRINT = false;
+
 int runPandorasSearch(
 	const unsigned int blocks, 
 	const unsigned int threads,
@@ -87,6 +99,8 @@ int runPandorasSearch(
 			return 1;
 		}
 
+		std::uint64_t currSeed = 0;
+
 		for (int i = 0; i < width * totalThreads; i++) {
 			if (results[i]) {
 				/*
@@ -95,7 +109,14 @@ int runPandorasSearch(
 				*/
 				++foundThreads; 
 				
-				outStream << results[i] << '\n';
+				if (DELTA_PRINT) {
+					outStream << static_cast<std::int64_t>(results[i]) - static_cast<std::int64_t>(currSeed) << '\n';
+					currSeed = results[i];
+				}
+				else {
+					outStream << results[i] << '\n';
+				}
+
 				if (verbosity && nPrints < 20) {
 					std::cout << getString(results[i]) << '\n';
 					nPrints++;
@@ -103,7 +124,7 @@ int runPandorasSearch(
 			}
 		}
 
-		std::cout << '\t' << foundThreads << '\n';
+		std::cout << '\t' << printWithCommas(foundThreads) << '\n';
 		
 		info.start += searchCountTotal;
 		info.end += searchCountTotal;
@@ -260,8 +281,6 @@ void runBenchmark2() {
 	std::cout << resultCountTotal << "\n";
 }
 
-
-
 int main(int argc, const char* argv[])
 {
 	//runBenchmark2();
@@ -310,7 +329,7 @@ int main(int argc, const char* argv[])
 	std::uint64_t batchSizeBillion = PARAMS[3]; // 1;//std::stoull(argv[3]);
 	std::uint64_t start = PARAMS[4] * batchSizeBillion * ONE_BILLION; // 0 * batchSizeBillion* ONE_BILLION;//std::stoull(argv[4]);
 	//auto filename = "out.txt"; //argv[5];
-
+	
 	std::string fName = "results/out-" + std::to_string(time(NULL)) + ".txt";
 	const char* filename = fName.c_str(); //argv[5];
 
