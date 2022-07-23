@@ -3,7 +3,7 @@
 
 // ************************************************************** BEGIN Silent TAS functions
 
-template<uint8 targetFirstEvent, uint8 numFirstEvents, uint8 shardDepth>
+template<uint8 targetFirstEvent, bool shrineEvent, uint8 shardDepth>
 __forceinline__ __device__ bool juzuNeowFirstEvent(const uint64 seed) {
 
 	uint64 seed0 = murmurHash3(seed);
@@ -38,13 +38,20 @@ __forceinline__ __device__ bool juzuNeowFirstEvent(const uint64 seed) {
 	}
 
 	// Ssserpent is 5 (mod 9), Golden Shrine is 1 (mod 13)
-	if (random8Fast<numFirstEvents>(seed0, seed1) != targetFirstEvent) {
-		return false;
+	if (shrineEvent) {
+		if (random8Fast<13>(seed0, seed1) != targetFirstEvent) {
+			return false;
+		}
+	}
+	else {
+		if (random8Fast<9>(seed0, seed1) != targetFirstEvent) {
+			return false;
+		}
 	}
 
 	// if Shard is forced, check the shop relic shuffle (4th libgdx long)
 	if (shardDepth) {
-		uint64 shuffleSeed = randomLong(seed0, seed1);
+		shuffleSeed = randomLong(seed0, seed1);
 		javaScramble(shuffleSeed);
 
 		for (uint8 i = 0; i < shardDepth; i++) {
@@ -70,6 +77,25 @@ __forceinline__ __device__ bool juzuNeowFirstEvent(const uint64 seed) {
 					}
 				}
 			}
+		}
+	}
+
+	// check for event (shrine, or non-shrine)
+	seed0 = murmurHash3(seed);
+	seed1 = murmurHash3(seed0);
+
+	if (randomFloatFast(seed0, seed1) < 0.15) {
+		return false;
+	}
+
+	if (shrineEvent) {
+		if (randomFloatFast(seed0, seed1) > 0.25) {
+			return false;
+		}
+	}
+	else {
+		if (randomFloatFast(seed0, seed1) < 0.25) {
+			return false;
 		}
 	}
 

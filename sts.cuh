@@ -56,7 +56,7 @@ __forceinline__ __device__ bool writeResults(
 	const unsigned int totalIdx,
 	const unsigned int width,
 	const uint64 seed,
-	uint8& ctr,
+	uint16& ctr,
 	uint64* results
 ) {
 	results[width * totalIdx + ctr] = seed;

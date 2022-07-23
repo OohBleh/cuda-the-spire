@@ -291,7 +291,7 @@ __global__ void shardKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
 	const unsigned int width = info.width;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
-	uint8 ctr = 0;
+	uint16 ctr = 0;
 
 	for (int i = 0; i < width; i++) {
 		results[width * totalIdx + i] = false;
@@ -328,7 +328,7 @@ __global__ void tasKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
 	const unsigned int width = info.width;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
-	uint8 ctr = 0;
+	uint16 ctr = 0;
 
 	for (int i = 0; i < width; i++) {
 		results[width * totalIdx + i] = false;
@@ -337,8 +337,8 @@ __global__ void tasKernel(TestInfo info, uint64* results) {
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
 		if (
-			juzuNeowFirstEvent<5, 9, 0>(seed)
-			&& finaleFirstShop(seed)
+			juzuNeowFirstEvent<5, false, 0>(seed)
+			//&& finaleFirstShop(seed)
 			&& startsPBox(seed)
 		) {
 			/*
@@ -361,7 +361,7 @@ __global__ void tasKernel2(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
 	const unsigned int width = info.width;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
-	uint8 ctr = 0;
+	uint16 ctr = 0;
 
 	for (int i = 0; i < width; i++) {
 		results[width * totalIdx + i] = false;
