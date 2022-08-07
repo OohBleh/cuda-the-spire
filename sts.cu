@@ -232,14 +232,21 @@ continue;
 
 __global__ void fastQNodeKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	const unsigned int width = info.width;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+	uint16 ctr = 0;
 
-	results[totalIdx] = false;
+	for (int i = 0; i < width; i++) {
+		results[width * totalIdx + i] = false;
+	}
+
 	for (; seed < info.end; seed += info.blocks * info.threads)
 	{
-		if (onlyTreasures(seed)) {
-			if (neowsLament(seed)) {
-				results[totalIdx] = seed;
+		if (
+			onlyShopsTreasures<9>(seed)
+			&& neowsLament(seed)
+		) {
+			if (writeResults(totalIdx, width, seed, ctr, results)) {
 				return;
 			}
 		}
