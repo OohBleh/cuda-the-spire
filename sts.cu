@@ -199,6 +199,26 @@ __global__ void badIroncladKernel(TestInfo info, uint64* results) {
 	}
 }
 
+__global__ void bottleneckKernel(TestInfo info, uint64* results) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	const unsigned int width = info.width;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+	uint16 ctr = 0;
+
+	for (int i = 0; i < width; i++) {
+		results[width * totalIdx + i] = false;
+	}
+
+	for (; seed < info.end; seed += info.blocks * info.threads)
+	{
+		if (!floor6Bottleneck(seed)) {
+			continue;
+		}
+		if (writeResults(totalIdx, width, seed, ctr, results)) {
+			return;
+		}
+	}
+}
 
 // ************************************************************** END Unwinnable Kernels
 
@@ -245,7 +265,7 @@ __global__ void fastQNodeKernel(TestInfo info, uint64* results) {
 		if (
 			onlyShopsTreasures<9>(seed)
 			&& neowsLament(seed)
-		) {
+			) {
 			if (writeResults(totalIdx, width, seed, ctr, results)) {
 				return;
 			}
@@ -464,6 +484,11 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 
 	case FunctionType::IRONCLAD_TAS:
 		tasKernel2 << <info.blocks, info.threads >> > (info, dev_results);
+		break;
+
+	
+	case FunctionType::BOTTLENECK:
+		bottleneckKernel << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	default:

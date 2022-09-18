@@ -31,7 +31,8 @@ enum class FunctionType {
 	SHARD,
 	ZYZZ,
 	SILENT_TAS, 
-	IRONCLAD_TAS
+	IRONCLAD_TAS, 
+	BOTTLENECK
 };
 
 const std::int8_t searchLength = 5;

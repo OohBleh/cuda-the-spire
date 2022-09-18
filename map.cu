@@ -78,6 +78,8 @@ struct MapNode {
 struct Map {
 	MapNode nodes[15][7];
 
+	uint8 uniqueFloor6Node;
+
 	__forceinline__ __device__ MapNode& getNode(int8 x, int8 y) {
 		return nodes[y][x];
 	}
@@ -96,6 +98,10 @@ struct Map {
 	}
 };
 
+/*
+accurate recreate of the gCA function from C++ code
+UNOPTIMIZED
+*/
 __forceinline__ __device__ bool getCommonAncestor(const Map& map, int8 x1, int8 x2, int8 y) {
 	if (map.getNode(x1, y).parentCount == 0 || map.getNode(x2, y).parentCount == 0) {
 		return false;
@@ -119,6 +125,11 @@ __forceinline__ __device__ bool getCommonAncestor(const Map& map, int8 x1, int8 
 	return false;
 }
 
+/*
+mostly accurate recreate of the cPPLR function from C++ code
+mostly optimized
+inaccuracy comes from the small chance that the RNG loop condition is met
+*/
 __forceinline__ __device__ int8 choosePathParentLoopRandomizer(const Map& map, uint64& seed0, uint64& seed1, int8 curX, int8 curY, int8 newX) {
 	const MapNode& newEdgeDest = map.getNode(newX, curY + 1);
 
@@ -166,6 +177,9 @@ __forceinline__ __device__ int8 choosePathParentLoopRandomizer(const Map& map, u
 	return newX;
 }
 
+/*
+
+*/
 __forceinline__ __device__ int choosePathAdjustNewX(const Map& map, int8 curX, int8 curY, int8 newEdgeX) {
 	if (curX != 0) {
 		auto right_node = map.getNode(curX - 1, curY);
@@ -189,6 +203,11 @@ __forceinline__ __device__ int choosePathAdjustNewX(const Map& map, int8 curX, i
 	return newEdgeX;
 }
 
+/*
+mostly accurate recreate of the cNP function from C++ code
+mostly optimized
+inaccuracy comes from the small chance that the RNG loop condition is met
+*/
 __forceinline__ __device__ int8 chooseNewPath(Map& map, uint64& seed0, uint64& seed1, int8 curX, int8 curY) {
 	MapNode& currentNode = map.getNode(curX, curY);
 	/*
@@ -218,6 +237,9 @@ __forceinline__ __device__ int8 chooseNewPath(Map& map, uint64& seed0, uint64& s
 	return newEdgeX;
 }
 
+/*
+cPI generates a path using the current state of the RNG, calling previous methods
+*/
 __forceinline__ __device__ void createPathsIteration(Map& map, uint64& seed0, uint64& seed1, int8 startX) {
 	int8 curX = startX;
 	for (int8 curY = 0; curY < 15 - 1; ++curY) {
@@ -523,3 +545,61 @@ __forceinline__ __device__ int8 testSeedForSinglePath(uint64 seed) {
 	}
 }
 
+__forceinline__ __device__ bool floor6Bottleneck(uint64 seed) {
+	uint64 seed0 = murmurHash3(seed + 1);
+	uint64 seed1 = murmurHash3(seed0);
+	Map map;
+	
+	int8 startX = random8Fast<7>(seed0, seed1);
+	int8 curX = startX;
+
+	for (int8 curY = 0; curY < 15 - 1; ++curY) {
+		int8 newX = chooseNewPath(map, seed0, seed1, curX, curY);
+		map.getNode(curX, curY).addEdge(newX);
+		map.getNode(newX, curY + 1).addParent(curX);
+
+		if (curY == 4) {
+			map.uniqueFloor6Node = newX;
+		}
+
+		curX = newX;
+	}
+
+	curX = random8Fast<7>(seed0, seed1);
+	while (curX == startX) {
+		curX = random8Fast<7>(seed0, seed1);
+	}
+	for (int8 curY = 0; curY < 15 - 1; ++curY) {
+		int8 newX = chooseNewPath(map, seed0, seed1, curX, curY);
+		map.getNode(curX, curY).addEdge(newX);
+		map.getNode(newX, curY + 1).addParent(curX);
+
+		if (curY == 4) {
+			if (map.uniqueFloor6Node != newX) {
+				return false;
+			}
+		}
+
+		curX = newX;
+	}
+	
+	for (int i = 0; i < 4; i++) {
+		int8 curX = random8Fast<7>(seed0, seed1);
+		for (int8 curY = 0; curY < 15 - 1; ++curY) {
+			int8 newX = chooseNewPath(map, seed0, seed1, curX, curY);
+			map.getNode(curX, curY).addEdge(newX);
+			map.getNode(newX, curY + 1).addParent(curX);
+
+			if (curY == 4) {
+				if (map.uniqueFloor6Node != newX) {
+					return false;
+				}
+			}
+
+			curX = newX;
+		}
+
+	}
+
+	return true;
+}
