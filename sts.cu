@@ -163,16 +163,28 @@ __global__ void badSilentKernel(TestInfo info, uint64* results) {
 template<uint8 nCardRewards>
 __global__ void badWatcherKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	const unsigned int width = info.width;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+	uint16 ctr = 0;
 
-	results[totalIdx] = false;
-	for (; seed < info.end; seed += info.blocks * info.threads)
-	{
-		if (testBadNeow2(seed)) {
-			if (testBadWatcherCardsFast<nCardRewards>(seed)) {
-				results[totalIdx] = seed;
-				return;
-			}
+	for (int i = 0; i < width; i++) {
+		results[width * totalIdx + i] = false;
+	}
+
+	for (; seed < info.end; seed += info.blocks * info.threads) {
+
+		if (!testBadNeow2(seed)) {
+			continue;
+		}
+		if (!testBadWatcherCardsFast<3>(seed)) {
+			continue;
+		}
+
+		if (!floor6Bottleneck(seed)) {
+			continue;
+		}
+		if (writeResults(totalIdx, width, seed, ctr, results)) {
+			return;
 		}
 	}
 }
@@ -226,21 +238,32 @@ __global__ void bottleneckKernel(TestInfo info, uint64* results) {
 
 __global__ void badMapKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	const unsigned int width = info.width;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+	uint16 ctr = 0;
 
-	results[totalIdx] = false;
-	for (; seed < info.end; seed += info.blocks * info.threads)
-	{
-		
+	for (int i = 0; i < width; i++) {
+		results[width * totalIdx + i] = false;
+	}
+
+	for (; seed < info.end; seed += info.blocks * info.threads) {
+
 		if (!testBadNeow2(seed)) {
-continue;
+			continue;
 		}
 		if (!testBadWatcherCardsFast<2>(seed)) {
 			continue;
 		}
 
-		if (testSeedForSinglePath<3>(seed)) {
+		/*if (testSeedForSinglePath<3>(seed)) {
 			results[totalIdx] = seed;
+			return;
+		}*/
+
+		if (!floor6Bottleneck(seed)) {
+			continue;
+		}
+		if (writeResults(totalIdx, width, seed, ctr, results)) {
 			return;
 		}
 	}

@@ -129,7 +129,8 @@ template<uint8 nCardRewards>
 __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 
 	//constexpr bool W_BAD_CARDS[71] = { false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, true, true, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, true, false, false, true, true, false, false, false, true, true, false, true, true, false, false, false, true, true, false, false, true, true, true, true, true, true, true, false, false, true, false, false, false, true, false, true, false, true, };
-	constexpr bool W_BAD_CARDS[71] = { false,false,false,true,false,false,true,false,false,false,true,false,false,false,false,false,false,true,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,true,false,false,true,true,false,false,false,true,false,false,true,true,false,false,false,true,false,false,false,false,true,true,true,true,false,false,false,false,false,false,false,false,true,false,true,false,false, };
+	constexpr bool W_BAD_CARDS[71] = { false, false, false, true, false, false, true, false, true, true, true, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, true, false, false, true, true, false, false, false, false, false, false, true, true, false, false, false, true, false, false, false, false, true, true, true, true, false, true, false, false, false, false, false, true, true, false, true, false, false,};
+
 
 	constexpr uint8 W_NUM_A = 19;
 	constexpr uint8 W_NUM_B = 35;
