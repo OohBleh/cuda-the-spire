@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <iostream>
 
+#include <array>
+
 typedef std::int8_t int8;
 typedef std::uint8_t uint8;
 
@@ -18,6 +20,9 @@ typedef std::uint32_t uint32;
 
 typedef std::uint64_t uint64;
 typedef std::int64_t int64;
+
+static const uint64 ONE_BILLION = 1'000'000'000ULL;
+static const uint64 ONE_TRILLION = 1'000'000'000'000ULL;
 
 enum class FunctionType {
 	PANDORA_71_8,
@@ -38,14 +43,33 @@ enum class FunctionType {
 const std::int8_t searchLength = 5;
 
 struct TestInfo {
+public:
 	unsigned int blocks;
 	unsigned int threads;
 	unsigned int width;
+	unsigned int batchSizeInBillions;
+	unsigned int verbosity;
+
 	std::uint64_t start;
 	std::uint64_t end;
 
 	FunctionType fnc;
 	void* data;
+
+	TestInfo(std::array<unsigned int, 6> parameters) {
+		blocks = parameters[0];
+		threads = parameters[1];
+		width = parameters[2];
+		batchSizeInBillions = parameters[3];
+		start = parameters[4] * static_cast<std::uint64_t>(batchSizeInBillions) * ONE_BILLION;
+		end = start + static_cast<std::uint64_t>(batchSizeInBillions) * ONE_BILLION;
+		verbosity = parameters[5];
+	}
+
+	void incrementInterval() {
+		start += static_cast<std::uint64_t>(batchSizeInBillions) * ONE_BILLION;
+		end += static_cast<std::uint64_t>(batchSizeInBillions) * ONE_BILLION;
+	}
 };
 
 cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results);
