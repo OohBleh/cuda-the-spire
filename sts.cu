@@ -8,11 +8,9 @@
 #include "shard.cu"
 #include "tas.cu"
 
-
-
-
 // ************************************************************** BEGIN PBox Kernel(s)
 
+/*TODO: fix this! */
 template<uint8 n, uint8 limit>
 __global__ void pandoraSeedKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
@@ -28,6 +26,7 @@ __global__ void pandoraSeedKernel(TestInfo info, uint64* results) {
 	}
 }
 
+/*TODO: fix this! */
 template<uint8 n, uint8 limit>
 __global__ void pandoraSeedKernelFast(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
@@ -43,6 +42,7 @@ __global__ void pandoraSeedKernelFast(TestInfo info, uint64* results) {
 	}
 }
 
+/*TODO: fix this! */
 __global__ void zyzzKernel(TestInfo info, uint64* results) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
 	uint64 seed = info.start + static_cast<uint64>(totalIdx);
@@ -62,86 +62,35 @@ __global__ void zyzzKernel(TestInfo info, uint64* results) {
 // ************************************************************** BEGIN Unwinnable Kernels
 
 template<uint8 nCardRewards>
-__forceinline__ __device__ bool testNoPotionsFast(const uint64 seed) {
+__global__ void unwinnableKernel(TestInfo info, uint64* results) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	const unsigned int width = info.width;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+	uint16 ctr = 0;
 
-	uint64 seed0 = murmurHash3(seed);
-	uint64 seed1 = murmurHash3(seed0);
-
-	uint8 thresh = 40;
-
-	for (uint8 i = 0; i < nCardRewards; i++) {
-
-		if (random64Fast<100>(seed0, seed1) < thresh) {
-			return false;
-		}
-		thresh += 10;
+	for (int i = 0; i < width; i++) {
+		results[width * totalIdx + i] = false;
 	}
 
-	return true;
-}
+	for (; seed < info.end; seed += info.blocks * info.threads) {
 
-/*
+		if (!testBadNeow2(seed)) {
+			continue;
+		}
+		if (!testBadWatcherCardsFast<3>(seed)) {
+			continue;
+		}
 
-combats with the left column filled in will be considered "bad"
-
-				Blue Slaver	0 -- 4/32
-4,5				Gremlin Gang	4/32 -- 6/32
-				Looter	6/32 -- 10/32
-10,11,12,13		Large Slime	10/32 -- 14/32
-14,15			Lots of Slimes	14/32 -- 16/32
-16,17,18		Exordium Thugs	16/32 -- 19/32
-19,20,21		Exordium Wildlife	19/32 -- 22/32
-				Red Slaver	22/32 -- 24/32
-24,25,26,27		3 Louse	24/32 -- 28/32
-				2 Fungi Beasts	28/32 -- 1
-
-bit vector of "bad" combats as a uint32 is 255851568
-the fights that cannot follow 2 louses are 251658240
-the fights that cannot follow 2 louses are 64512
-*/
-
-template<uint8 nQNodes>
-__forceinline__ __device__ bool testCombatQNodes(const uint64 seed) {
-	uint64 seed0 = murmurHash3(seed);
-	uint64 seed1 = murmurHash3(seed0);
-
-	for (uint8 i = 0; i < nQNodes; i++) {
-		float p = randomFloatFast(seed0, seed1);
-		if (p > 0.1f) {
-			return false;
+		if (!floor6Bottleneck(seed)) {
+			continue;
+		}
+		if (writeResults(totalIdx, width, seed, ctr, results)) {
+			return;
 		}
 	}
-
-	uint8 c2 = ((uint8)4 * randomFloatFast(seed0, seed1));
-	while (c2 == 0) {
-		c2 = (uint8)(4 * randomFloatFast(seed0, seed1));
-	}
-
-	uint8 c3 = ((uint8)4 * randomFloatFast(seed0, seed1));
-	while ((c3 == 0) || (c3 == c2)) {
-		c3 = (uint8)(4 * randomFloatFast(seed0, seed1));
-	}
-
-	uint8 c4 = ((uint8)32 * randomFloatFast(seed0, seed1));
-	while (
-		((c3 == 2) && ((1 << c4) & 251658240) != 0)
-		|| ((c3 == 3) && ((1 << c4) & 64512) != 0)
-		) {
-		c4 = ((uint8)32 * randomFloatFast(seed0, seed1));
-	}
-	if (((1 << c4) & 255851568) == 0) {
-		return false;
-	}
-
-	uint8 c5 = ((uint8)32 * randomFloatFast(seed0, seed1));
-	while (c5 == c4) {
-		c5 = ((uint8)32 * randomFloatFast(seed0, seed1));
-	}
-	if (((1 << c5) & 255851568) == 0) {
-		return false;
-	}
-	return true;
 }
+
+
 
 template<uint8 nCardRewards>
 __global__ void badSilentKernel(TestInfo info, uint64* results) {
@@ -176,7 +125,7 @@ __global__ void badWatcherKernel(TestInfo info, uint64* results) {
 		if (!testBadNeow2(seed)) {
 			continue;
 		}
-		if (!testBadWatcherCardsFast<3>(seed)) {
+		if (!testBadWatcherCardsFast<2>(seed)) {
 			continue;
 		}
 
@@ -211,26 +160,6 @@ __global__ void badIroncladKernel(TestInfo info, uint64* results) {
 	}
 }
 
-__global__ void bottleneckKernel(TestInfo info, uint64* results) {
-	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
-	const unsigned int width = info.width;
-	uint64 seed = info.start + static_cast<uint64>(totalIdx);
-	uint16 ctr = 0;
-
-	for (int i = 0; i < width; i++) {
-		results[width * totalIdx + i] = false;
-	}
-
-	for (; seed < info.end; seed += info.blocks * info.threads)
-	{
-		if (!floor6Bottleneck(seed)) {
-			continue;
-		}
-		if (writeResults(totalIdx, width, seed, ctr, results)) {
-			return;
-		}
-	}
-}
 
 // ************************************************************** END Unwinnable Kernels
 
@@ -260,6 +189,27 @@ __global__ void badMapKernel(TestInfo info, uint64* results) {
 			return;
 		}*/
 
+		if (!floor6Bottleneck(seed)) {
+			continue;
+		}
+		if (writeResults(totalIdx, width, seed, ctr, results)) {
+			return;
+		}
+	}
+}
+
+__global__ void bottleneckKernel(TestInfo info, uint64* results) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	const unsigned int width = info.width;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+	uint16 ctr = 0;
+
+	for (int i = 0; i < width; i++) {
+		results[width * totalIdx + i] = false;
+	}
+
+	for (; seed < info.end; seed += info.blocks * info.threads)
+	{
 		if (!floor6Bottleneck(seed)) {
 			continue;
 		}
@@ -434,7 +384,7 @@ __global__ void tasKernel2(TestInfo info, uint64* results) {
 // ************************************************************** END Shard Kernel(s)
 
 
-cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
+cudaError_t testSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
 {
 	const unsigned int totalThreads = info.blocks * info.threads;
 	const unsigned int width = info.width;
@@ -462,11 +412,11 @@ cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* re
 
 	switch (fnc) {
 	case FunctionType::PANDORA_71_8:
-		//pandoraSeedKernelFast<71, 8> <<<info.blocks, info.threads >>> (info, dev_results);
+		pandoraSeedKernelFast<71, 8> <<<info.blocks, info.threads >>> (info, dev_results);
 		break;
 
 	case FunctionType::PANDORA_72_8:
-		//pandoraSeedKernelFast<72, 8> << <info.blocks, info.threads >> > (info, dev_results);
+		pandoraSeedKernelFast<72, 8> << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	case FunctionType::BAD_SILENT:

@@ -72,7 +72,7 @@ public:
 	}
 };
 
-cudaError_t testPandoraSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results);
+cudaError_t testSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results);
 
 
 // ************************************************************** BEGIN Utility Function(s)

@@ -29,7 +29,7 @@ using std::endl;
 static string getString(int64_t seed) {
 	constexpr auto chars = "0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ";
 
-	uint64_t uSeed = static_cast<std::uint64_t>(seed);
+	uint64 uSeed = static_cast<uint64>(seed);
 	string str;
 
 	do {
@@ -61,11 +61,7 @@ inline string printWithCommas(uint64 seed) {
 	return temp;
 }
 
-static constexpr bool DELTA_PRINT = false;
-
-int runPandorasSearch(
-	TestInfo info,
-	const char* filename
+int runSeedSearch(TestInfo info, const char* filename
 ) {
 	std::ofstream outStream(filename, std::ios_base::app);
 
@@ -74,7 +70,7 @@ int runPandorasSearch(
 
 	auto totalThreads = info.blocks * info.threads;
 
-	std::unique_ptr<uint64_t[]> results(new uint64_t[info.width * totalThreads]);
+	std::unique_ptr<uint64[]> results(new uint64[info.width * totalThreads]);
 
 	uint64 foundThreads = 0;
 
@@ -82,37 +78,30 @@ int runPandorasSearch(
 
 	while (true) {
 		time = getTime();
-		//outStream << time << " " << info.start << " " << info.end << " " << std::endl;
-		cout << time << " " << info.start << " " << info.end << " " << std::endl;
+		cout << time << " " << info.start << " " << info.end << " " << endl;
 
-		cudaStatus = testPandoraSeedsWithCuda(info, FunctionType::BOTTLENECK, results.get());
+		cudaStatus = testSeedsWithCuda(info, FunctionType::BAD_WATCHER, results.get());
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "testSeedsWithCuda failed!");
 			return 1;
 		}
 
-		std::uint64_t currSeed = 0;
+		uint64 currSeed = 0;
 
 		for (int i = 0; i < info.width * totalThreads; i++) {
 			if (results[i]) {
 				++foundThreads; 
 				
-				if (DELTA_PRINT) {
-					outStream << static_cast<std::int64_t>(results[i]) - static_cast<std::int64_t>(currSeed) << endl;
-					currSeed = results[i];
-				}
-				else {
-					outStream << results[i] << endl;
-				}
+				outStream << results[i] << endl;
 
 				if (info.verbosity && nPrints < 20) {
-					std::cout << getString(results[i]) << endl;
+					cout << getString(results[i]) << endl;
 					nPrints++;
 				}
 			}
 		}
 
-		std::cout << '\t' << printWithCommas(foundThreads) << endl;
+		cout << '\t' << printWithCommas(foundThreads) << endl;
 		
 		info.incrementInterval();
 
@@ -145,24 +134,14 @@ int main(int argc, const char* argv[])
 	array<unsigned int, 6> PARAMS;
 	for (int i = 0; i < 6; i++) {
 		f >> PARAMS[i];
-		std::cout << PARAM_NAMES[i] << "\t" << PARAMS[i] << endl;
+		cout << PARAM_NAMES[i] << "\t" << PARAMS[i] << endl;
 	}
 	f.close();
 
 	cout << endl;
 
 	TestInfo info = TestInfo(PARAMS);
-	
-	//int blocks = PARAMS[0];//24;//std::stoi(argv[1]);
-	//int threads = PARAMS[1]; //128;//std::stoi(argv[2]);
-	//int width = PARAMS[2]; //8;
-	//std::uint64_t batchSizeBillion = PARAMS[3]; // 1;//std::stoull(argv[3]);
-	//std::uint64_t start = PARAMS[4] * batchSizeBillion * ONE_BILLION; // 0 * batchSizeBillion* ONE_BILLION;//std::stoull(argv[4]);
-	//auto filename = "out.txt"; //argv[5];
-	
 	string fName = "results/out-" + std::to_string(time(NULL)) + ".txt";
-	const char* filename = fName.c_str(); //argv[5];
-
-	return runPandorasSearch(info, filename);
+	return runSeedSearch(info, fName.c_str());
 
 }
