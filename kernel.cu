@@ -2,8 +2,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#include <stdio.h>
-#include <cstdint>
 #include <string>
 using std::string;
 
@@ -82,7 +80,7 @@ int runSeedSearch(TestInfo info, const char* filename
 
 		cudaStatus = testSeedsWithCuda(info, results.get());
 		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "testSeedsWithCuda failed!");
+			cout << "testSeedsWithCuda failed!";
 			return 1;
 		}
 
@@ -140,7 +138,7 @@ int main(int argc, const char* argv[])
 
 	cout << endl;
 
-	TestInfo info = TestInfo(PARAMS, FunctionType::BAD_IRONCLAD);
+	TestInfo info = TestInfo(PARAMS, FunctionType::PANDORA_71_8);
 	string fName = "results/out-" + std::to_string(time(NULL)) + ".txt";
 	return runSeedSearch(info, fName.c_str());
 

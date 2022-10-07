@@ -30,7 +30,6 @@ enum class FunctionType {
 	BAD_SILENT,
 	BAD_WATCHER,
 	BAD_IRONCLAD,
-	BAD_MAP,
 	FAST_QNODES, 
 	CUSTOM, 
 	SHARD,
@@ -93,7 +92,7 @@ __device__ void kernel(TestInfo info, uint64* results, F filter) {
 	uint16 ctr = 0;
 
 	for (int i = 0; i < width; i++) {
-		results[width * totalIdx + i] = false;
+		results[width * totalIdx + i] = 0;
 	}
 
 	for (; seed < info.end; seed += info.blocks * info.threads) {

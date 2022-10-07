@@ -8,10 +8,10 @@ __forceinline__ __device__ bool testPandoraSeed(const uint64 seed) {
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
 
-	uint8 num = random64<n>(seed0, seed1, n);
+	uint8 num = random8Fast<n>(seed0, seed1);
 
-	for (int8 i = 1; i < 7; i++) {
-		if (random64<n>(seed0, seed1, n) != num) {
+	for (int8 i = 1; i < limit; i++) {
+		if (random64<n>(seed0, seed1) != num) {
 			return false;
 		}
 	}
