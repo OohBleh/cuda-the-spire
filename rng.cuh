@@ -21,11 +21,11 @@ __forceinline__ __device__ uint64 inverseHash(uint64 x) {
 	constexpr uint64 B1 = 5725274745694666757Ui64;
 	constexpr uint64 B2 = 11291846944257947611Ui64;
 
-	x ^= x >> 31;
+	x ^= x >> 33;
 	x *= B2;
-	x ^= x >> 31;
+	x ^= x >> 33;
 	x *= B1;
-	x ^= x >> 31;
+	x ^= x >> 33;
 	return x;
 }
 

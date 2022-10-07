@@ -293,7 +293,7 @@ cudaError_t testSeedsWithCuda(TestInfo info, uint64* results)
 
 	switch (info.fnc) {
 	case FunctionType::PANDORA_71_8:
-		pandoraSeedKernel<71, 8> <<<info.blocks, info.threads >>> (info, dev_results);
+		pandoraSeedKernelFast<71, 8> <<<info.blocks, info.threads >>> (info, dev_results);
 		break;
 
 	case FunctionType::PANDORA_72_8:
