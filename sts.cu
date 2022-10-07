@@ -61,35 +61,6 @@ __global__ void zyzzKernel(TestInfo info, uint64* results) {
 
 // ************************************************************** BEGIN Unwinnable Kernels
 
-template<uint8 nCardRewards>
-__global__ void unwinnableKernel(TestInfo info, uint64* results) {
-	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
-	const unsigned int width = info.width;
-	uint64 seed = info.start + static_cast<uint64>(totalIdx);
-	uint16 ctr = 0;
-
-	for (int i = 0; i < width; i++) {
-		results[width * totalIdx + i] = false;
-	}
-
-	for (; seed < info.end; seed += info.blocks * info.threads) {
-
-		if (!testBadNeow2(seed)) {
-			continue;
-		}
-		if (!testBadWatcherCardsFast<3>(seed)) {
-			continue;
-		}
-
-		if (!floor6Bottleneck(seed)) {
-			continue;
-		}
-		if (writeResults(totalIdx, width, seed, ctr, results)) {
-			return;
-		}
-	}
-}
-
 
 
 template<uint8 nCardRewards>
@@ -109,55 +80,39 @@ __global__ void badSilentKernel(TestInfo info, uint64* results) {
 	}
 }
 
-template<uint8 nCardRewards>
 __global__ void badWatcherKernel(TestInfo info, uint64* results) {
-	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
-	const unsigned int width = info.width;
-	uint64 seed = info.start + static_cast<uint64>(totalIdx);
-	uint16 ctr = 0;
-
-	for (int i = 0; i < width; i++) {
-		results[width * totalIdx + i] = false;
-	}
-
-	for (; seed < info.end; seed += info.blocks * info.threads) {
-
+	
+	auto filter = [](uint64 seed) {
 		if (!testBadNeow2(seed)) {
-			continue;
+			return true;
 		}
 		if (!testBadWatcherCardsFast<2>(seed)) {
-			continue;
+			return true;
 		}
-
 		if (!floor6Bottleneck(seed)) {
-			continue;
+			return true;
 		}
-		if (writeResults(totalIdx, width, seed, ctr, results)) {
-			return;
-		}
-	}
+		return false;
+	};
+
+	return kernel(info, results, filter);
 }
 
 template<uint8 nCardRewards>
 __global__ void badIroncladKernel(TestInfo info, uint64* results) {
-	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
-	uint64 seed = info.start + static_cast<uint64>(totalIdx);
-
-	results[totalIdx] = false;
-	for (; seed < info.end; seed += info.blocks * info.threads)
-	{
+	auto filter = [=](uint64 seed) {
 		if (!testBadNeow1<nCardRewards>(seed)) {
-			continue;
+			return true;
 		}
 		if (!testBadIroncladCardsFast<nCardRewards>(seed)) {
-			continue;
+			return true;
 		}
 		if (!testCombatQNodes<2>(seed)) {
-			continue;
+			return true;
 		}
-		results[totalIdx] = seed;
-		return;
-	}
+		return false;
+	};
+	return kernel(info, results, filter);
 }
 
 
@@ -384,7 +339,7 @@ __global__ void tasKernel2(TestInfo info, uint64* results) {
 // ************************************************************** END Shard Kernel(s)
 
 
-cudaError_t testSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
+cudaError_t testSeedsWithCuda(TestInfo info, uint64* results)
 {
 	const unsigned int totalThreads = info.blocks * info.threads;
 	const unsigned int width = info.width;
@@ -410,7 +365,7 @@ cudaError_t testSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
 	//    goto Error;
 	//}
 
-	switch (fnc) {
+	switch (info.fnc) {
 	case FunctionType::PANDORA_71_8:
 		pandoraSeedKernelFast<71, 8> <<<info.blocks, info.threads >>> (info, dev_results);
 		break;
@@ -424,11 +379,11 @@ cudaError_t testSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results)
 		break;
 
 	case FunctionType::BAD_WATCHER:
-		badWatcherKernel<3> << <info.blocks, info.threads >> > (info, dev_results);
+		badWatcherKernel << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	case FunctionType::BAD_IRONCLAD:
-		badIroncladKernel<5> << <info.blocks, info.threads >> > (info, dev_results);
+		badIroncladKernel<3> << <info.blocks, info.threads >> > (info, dev_results);
 		break;
 
 	case FunctionType::BAD_MAP:

@@ -80,7 +80,7 @@ int runSeedSearch(TestInfo info, const char* filename
 		time = getTime();
 		cout << time << " " << info.start << " " << info.end << " " << endl;
 
-		cudaStatus = testSeedsWithCuda(info, FunctionType::BAD_WATCHER, results.get());
+		cudaStatus = testSeedsWithCuda(info, results.get());
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "testSeedsWithCuda failed!");
 			return 1;
@@ -140,7 +140,7 @@ int main(int argc, const char* argv[])
 
 	cout << endl;
 
-	TestInfo info = TestInfo(PARAMS);
+	TestInfo info = TestInfo(PARAMS, FunctionType::BAD_IRONCLAD);
 	string fName = "results/out-" + std::to_string(time(NULL)) + ".txt";
 	return runSeedSearch(info, fName.c_str());
 

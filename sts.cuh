@@ -21,8 +21,8 @@ typedef std::uint32_t uint32;
 typedef std::uint64_t uint64;
 typedef std::int64_t int64;
 
-static const uint64 ONE_BILLION = 1'000'000'000ULL;
-static const uint64 ONE_TRILLION = 1'000'000'000'000ULL;
+constexpr uint64 ONE_BILLION = 1'000'000'000ULL;
+constexpr uint64 ONE_TRILLION = 1'000'000'000'000ULL;
 
 enum class FunctionType {
 	PANDORA_71_8,
@@ -40,8 +40,6 @@ enum class FunctionType {
 	BOTTLENECK
 };
 
-const std::int8_t searchLength = 5;
-
 struct TestInfo {
 public:
 	unsigned int blocks;
@@ -54,17 +52,15 @@ public:
 	std::uint64_t end;
 
 	FunctionType fnc;
-	void* data;
+	void* data = nullptr;
 
-	TestInfo(std::array<unsigned int, 6> parameters) {
-		blocks = parameters[0];
-		threads = parameters[1];
-		width = parameters[2];
-		batchSizeInBillions = parameters[3];
-		start = parameters[4] * static_cast<std::uint64_t>(batchSizeInBillions) * ONE_BILLION;
-		end = start + static_cast<std::uint64_t>(batchSizeInBillions) * ONE_BILLION;
-		verbosity = parameters[5];
-	}
+	TestInfo(std::array<unsigned int, 6> parameters, FunctionType fun) :
+		blocks(parameters[0]), threads(parameters[1]), width(parameters[2]),
+		batchSizeInBillions(parameters[3]), verbosity(parameters[5]),
+		start(parameters[4] * static_cast<std::uint64_t>(batchSizeInBillions)* ONE_BILLION),
+		end(start + static_cast<std::uint64_t>(batchSizeInBillions) * ONE_BILLION),
+		fnc(fun)
+	{}
 
 	void incrementInterval() {
 		start += static_cast<std::uint64_t>(batchSizeInBillions) * ONE_BILLION;
@@ -72,7 +68,7 @@ public:
 	}
 };
 
-cudaError_t testSeedsWithCuda(TestInfo info, FunctionType fnc, uint64* results);
+cudaError_t testSeedsWithCuda(TestInfo info, uint64* results);
 
 
 // ************************************************************** BEGIN Utility Function(s)
@@ -88,6 +84,31 @@ __forceinline__ __device__ bool writeResults(
 	ctr++;
 	return ctr == width;
 }
+
+template<typename F>
+__device__ void kernel(TestInfo info, uint64* results, F filter) {
+	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
+	const unsigned int width = info.width;
+	uint64 seed = info.start + static_cast<uint64>(totalIdx);
+	uint16 ctr = 0;
+
+	for (int i = 0; i < width; i++) {
+		results[width * totalIdx + i] = false;
+	}
+
+	for (; seed < info.end; seed += info.blocks * info.threads) {
+
+		if (filter(seed)) {
+			continue;
+		}
+		if (writeResults(totalIdx, width, seed, ctr, results)) {
+			return;
+		}
+	}
+}
+
+
+
 // ************************************************************** END Utility Function(s)
 
 #endif // !STS_CUH

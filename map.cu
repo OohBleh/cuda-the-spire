@@ -2,6 +2,8 @@
 
 // ************************************************************** BEGIN Fast Map Functions
 
+constexpr int8 searchLength = 5;
+
 struct MapNode {
 	int8 parentCount;
 	int8 parents[6];
@@ -78,7 +80,7 @@ struct MapNode {
 struct Map {
 	MapNode nodes[15][7];
 
-	uint8 uniqueFloor6Node;
+	uint8 uniqueFloor6Node = 8;
 
 	__forceinline__ __device__ MapNode& getNode(int8 x, int8 y) {
 		return nodes[y][x];
