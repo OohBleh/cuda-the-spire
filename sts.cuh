@@ -72,19 +72,38 @@ cudaError_t testSeedsWithCuda(TestInfo info, uint64* results);
 
 // ************************************************************** BEGIN Utility Function(s)
 
-__forceinline__ __device__ bool writeResults(
-	const unsigned int totalIdx,
-	const unsigned int width,
-	const uint64 seed,
-	uint16& ctr,
-	uint64* results
-) {
-	results[width * totalIdx + ctr] = seed;
+enum class SeedType {		//the seed that a device handles is a...
+	RunSeed,				//seed that initializes a run, or a 
+	HashedRunSeed,			//hashed run seed, or a
+	Act1MapSeed,			//seed for the Act 1 map (run seed + 1), or a
+	HashedAct1MapSeed		//hashed Act 1 map seed
+};
+
+template <SeedType seedType>
+__forceinline__ __device__ bool writeResults(const unsigned int totalIdx, const unsigned int width,
+	const uint64 seed, uint16& ctr, uint64* results) {
+	switch (seedType) {
+	case SeedType::RunSeed:
+		results[width * totalIdx + ctr] = seed;
+		break;
+	case SeedType::HashedRunSeed:
+		results[width * totalIdx + ctr] = inverseHash(seed);
+		break;
+	case SeedType::Act1MapSeed:
+		results[width * totalIdx + ctr] = seed - 1;
+		break;
+	case SeedType::HashedAct1MapSeed:
+		results[width * totalIdx + ctr] = inverseHash(seed) - 1;
+		break;
+	default:
+		break;
+	}
+
 	ctr++;
 	return ctr == width;
 }
 
-template<typename F>
+template<SeedType transform, typename F>
 __device__ void kernel(TestInfo info, uint64* results, F filter) {
 	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
 	const unsigned int width = info.width;
@@ -100,7 +119,7 @@ __device__ void kernel(TestInfo info, uint64* results, F filter) {
 		if (filter(seed)) {
 			continue;
 		}
-		if (writeResults(totalIdx, width, seed, ctr, results)) {
+		if (writeResults<transform>(totalIdx, width, seed, ctr, results)) {
 			return;
 		}
 	}

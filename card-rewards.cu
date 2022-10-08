@@ -125,22 +125,38 @@ __forceinline__ __device__ bool testBadIroncladCardsFast(const uint64 seed) {
 	return true;
 }
 
+template<uint8 nCardRewards, SeedType seedType>
+__forceinline__ __device__ bool getsBadWatcherCards(const uint64 seed) {
+	
+	uint64 seed0, seed1;
+
+	switch (seedType){
+	case SeedType::RunSeed:
+		seed0 = murmurHash3(seed);
+		seed1 = murmurHash3(seed0);
+		break;
+	case SeedType::HashedRunSeed:
+		seed0 = seed;
+		seed1 = murmurHash3(seed0);
+		break;
+	default:
+		break;
+	}
+	
+	return getsBadWatcherCards<nCardRewards>(seed0, seed1);
+}
+	
 template<uint8 nCardRewards>
-__forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
+__forceinline__ __device__ bool getsBadWatcherCards(uint64 seed0, uint64 seed1) {
 
-	//constexpr bool W_BAD_CARDS[71] = { false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, true, true, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, true, false, false, true, true, false, false, false, true, true, false, true, true, false, false, false, true, true, false, false, true, true, true, true, true, true, true, false, false, true, false, false, false, true, false, true, false, true, };
-	constexpr bool W_BAD_CARDS[71] = { false,false,false,true,false,false,true,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,true,false,false,true,true,false,false,false,true,false,false,true,true,true,false,false,true,false,false,false,false,true,true,true,true,false,false,false,false,false,false,false,true,true,false,true,false,true, };
+	constexpr bool isBad[71] = { false,false,false,true,false,false,true,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,true,false,false,true,true,false,false,false,true,false,false,true,true,true,false,false,true,false,false,false,false,true,true,true,true,false,false,false,false,false,false,false,true,true,false,true,false,true, };
+	
+	constexpr uint8 nCommons = 19;
+	constexpr uint8 nUncommons = 35;
+	constexpr uint8 nRares = 17;
 
-
-	constexpr uint8 W_NUM_A = 19;
-	constexpr uint8 W_NUM_B = 35;
-	constexpr uint8 W_NUM_C = 17;
-
-	constexpr uint8 W_SUM_AB = 54;
-	constexpr uint16 W_LCM_BC = 595;
-
-	uint64 seed0 = murmurHash3(seed);
-	uint64 seed1 = murmurHash3(seed0);
+	constexpr uint8 nCommonsAndUncommons = 54;
+	constexpr uint16 lcmOfUncommonsAndRares = 595;
 
 	//int8 adj = 5;
 
@@ -149,9 +165,9 @@ __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 	int8 roll = random64Fast<100>(seed0, seed1);
 	bool is_common = (roll >= 35);
 
-	uint16 card1 = (is_common) ? random64Fast<W_NUM_A>(seed0, seed1) : (random64Fast<W_NUM_B>(seed0, seed1) + W_NUM_A);
+	uint16 card1 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : (random64Fast<nUncommons>(seed0, seed1) + nCommons);
 
-	if (!W_BAD_CARDS[card1]) {
+	if (!isBad[card1]) {
 		return false;
 	}
 
@@ -163,9 +179,9 @@ __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 
 	uint16 card2;
 	do {
-		card2 = (is_common) ? random64Fast<W_NUM_A>(seed0, seed1) : (random64Fast<W_NUM_B>(seed0, seed1) + W_NUM_A);
+		card2 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : (random64Fast<nUncommons>(seed0, seed1) + nCommons);
 
-		if (!W_BAD_CARDS[card2]) {
+		if (!isBad[card2]) {
 			return false;
 		}
 	} while (card2 == card1);
@@ -178,9 +194,9 @@ __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 
 	uint16 card3;
 	do {
-		card3 = (is_common) ? random64Fast<W_NUM_A>(seed0, seed1) : (random64Fast<W_NUM_B>(seed0, seed1) + W_NUM_A);
+		card3 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : (random64Fast<nUncommons>(seed0, seed1) + nCommons);
 
-		if (!W_BAD_CARDS[card3]) {
+		if (!isBad[card3]) {
 			return false;
 		}
 	} while ((card3 == card1) || (card3 == card2));
@@ -199,11 +215,11 @@ __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 		is_common = (roll >= 40);
 		bool is_uncommon = (!is_rare) && (!is_common);
 
-		uint16 card1 = (is_common) ? random64Fast<W_NUM_A>(seed0, seed1) : random64Fast<W_LCM_BC>(seed0, seed1);
-		card1 = (is_rare) ? ((card1 % W_NUM_C) + W_SUM_AB) : card1;
-		card1 = (is_uncommon) ? ((card1 % W_NUM_B) + W_NUM_A) : card1;
+		uint16 card1 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : random64Fast<lcmOfUncommonsAndRares>(seed0, seed1);
+		card1 = (is_rare) ? ((card1 % nRares) + nCommonsAndUncommons) : card1;
+		card1 = (is_uncommon) ? ((card1 % nUncommons) + nCommons) : card1;
 
-		if (!W_BAD_CARDS[card1]) {
+		if (!isBad[card1]) {
 			return false;
 		}
 
@@ -219,11 +235,11 @@ __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 
 		card2;
 		do {
-			card2 = (is_common) ? random64Fast<W_NUM_A>(seed0, seed1) : random64Fast<W_LCM_BC>(seed0, seed1);
-			card2 = (is_rare) ? ((card2 % W_NUM_C) + W_SUM_AB) : card2;
-			card2 = (is_uncommon) ? ((card2 % W_NUM_B) + W_NUM_A) : card2;
+			card2 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : random64Fast<lcmOfUncommonsAndRares>(seed0, seed1);
+			card2 = (is_rare) ? ((card2 % nRares) + nCommonsAndUncommons) : card2;
+			card2 = (is_uncommon) ? ((card2 % nUncommons) + nCommons) : card2;
 
-			if (!W_BAD_CARDS[card2]) {
+			if (!isBad[card2]) {
 				return false;
 			}
 		} while (card2 == card1);
@@ -240,11 +256,11 @@ __forceinline__ __device__ bool testBadWatcherCardsFast(const uint64 seed) {
 
 		card3;
 		do {
-			card3 = (is_common) ? random64Fast<W_NUM_A>(seed0, seed1) : random64Fast<W_LCM_BC>(seed0, seed1);
-			card3 = (is_rare) ? ((card3 % W_NUM_C) + W_SUM_AB) : card3;
-			card3 = (is_uncommon) ? ((card3 % W_NUM_B) + W_NUM_A) : card3;
+			card3 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : random64Fast<lcmOfUncommonsAndRares>(seed0, seed1);
+			card3 = (is_rare) ? ((card3 % nRares) + nCommonsAndUncommons) : card3;
+			card3 = (is_uncommon) ? ((card3 % nUncommons) + nCommons) : card3;
 
-			if (!W_BAD_CARDS[card3]) {
+			if (!isBad[card3]) {
 				return false;
 			}
 		} while ((card3 == card1) || (card3 == card2));

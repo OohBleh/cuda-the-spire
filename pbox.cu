@@ -10,7 +10,7 @@ __forceinline__ __device__ bool testPandoraSeed(const uint64 seed) {
 
 	uint8 num = random8Fast<n>(seed0, seed1);
 
-	for (int8 i = 1; i < limit; i++) {
+	for (uint8 i = 1; i < limit; i++) {
 		if (random64<n>(seed0, seed1) != num) {
 			return false;
 		}

@@ -15,27 +15,11 @@ using std::endl;
 
 template<uint8 n, uint8 limit>
 __global__ void pandoraSeedKernel(TestInfo info, uint64* results) {
-	return kernel(info, results, [](uint64 seed) {return !testPandoraSeed<n, limit>(seed); });
-}
-
-/*TODO: fix this! */
-template<uint8 n, uint8 limit>
-__global__ void pandoraSeedKernelFast(TestInfo info, uint64* results) {
-	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
-	uint64 seed = info.start + static_cast<uint64>(totalIdx);
-
-	results[totalIdx] = false;
-	for (; seed < info.end; seed += info.blocks * info.threads)
-	{
-		if (testPandoraSeedFast<n, limit>(seed)) {
-			results[totalIdx] = inverseHash(seed);
-			return;
-		}
-	}
+	return kernel<SeedType::HashedRunSeed>(info, results, [](uint64 seed) {return !testPandoraSeedFast<n, limit>(seed); });
 }
 
 __global__ void zyzzKernel(TestInfo info, uint64* results) {
-	return kernel(info, results, [](uint64 seed) {return zyzzTest(seed); });
+	return kernel<SeedType::RunSeed>(info, results, [](uint64 seed) {return zyzzTest(seed); });
 }
 
 // ************************************************************** END PBox Kernel(s)
@@ -54,7 +38,7 @@ __global__ void badSilentKernel(TestInfo info, uint64* results) {
 		}
 		return false;
 	};
-	return kernel(info, results, filter);
+	return kernel<SeedType::RunSeed>(info, results, filter);
 }
 
 template<uint8 nCardRewards>
@@ -64,7 +48,7 @@ __global__ void badWatcherKernel(TestInfo info, uint64* results) {
 		if (!testBadNeow2(seed)) {
 			return true;
 		}
-		if (!testBadWatcherCardsFast<nCardRewards>(seed)) {
+		if (!getsBadWatcherCards<nCardRewards, SeedType::RunSeed>(seed)) {
 			return true;
 		}
 		if (!floor6Bottleneck(seed)) {
@@ -73,7 +57,7 @@ __global__ void badWatcherKernel(TestInfo info, uint64* results) {
 		return false;
 	};
 
-	return kernel(info, results, filter);
+	return kernel<SeedType::RunSeed>(info, results, filter);
 }
 
 template<uint8 nCardRewards>
@@ -90,7 +74,7 @@ __global__ void badIroncladKernel(TestInfo info, uint64* results) {
 		}
 		return false;
 	};
-	return kernel(info, results, filter);
+	return kernel<SeedType::RunSeed>(info, results, filter);
 }
 
 // ************************************************************** END Unwinnable Kernels
@@ -98,7 +82,7 @@ __global__ void badIroncladKernel(TestInfo info, uint64* results) {
 // ************************************************************** BEGIN Map Kernels
 
 __global__ void bottleneckKernel(TestInfo info, uint64* results) {
-	return kernel(info, results, [](uint64 seed) {return !floor6Bottleneck(seed); });
+	return kernel<SeedType::RunSeed>(info, results, [](uint64 seed) {return !floor6Bottleneck(seed); });
 }
 
 // ************************************************************** END Map Kernels
@@ -122,7 +106,7 @@ __global__ void fastQNodeKernel(TestInfo info, uint64* results) {
 			onlyShopsTreasures<9>(seed)
 			&& neowsLament(seed)
 			) {
-			if (writeResults(totalIdx, width, seed, ctr, results)) {
+			if (writeResults<SeedType::RunSeed>(totalIdx, width, seed, ctr, results)) {
 				return;
 			}
 		}
@@ -198,7 +182,7 @@ __global__ void shardKernel(TestInfo info, uint64* results) {
 			}
 			//return;
 			*/
-			if (writeResults(totalIdx, width, seed, ctr, results)) {
+			if (writeResults<SeedType::RunSeed>(totalIdx, width, seed, ctr, results)) {
 				return;
 			}
 		}
@@ -236,7 +220,7 @@ __global__ void tasKernel(TestInfo info, uint64* results) {
 			}
 			//return;
 			*/
-			if (writeResults(totalIdx, width, seed, ctr, results)) {
+			if (writeResults<SeedType::RunSeed>(totalIdx, width, seed, ctr, results)) {
 				return;
 			}
 		}
@@ -261,7 +245,7 @@ __global__ void tasKernel2(TestInfo info, uint64* results) {
 			&& shrineShop<false>(seed)
 			&& startsPBox(seed)
 		) {
-			if (writeResults(totalIdx, width, seed, ctr, results)) {
+			if (writeResults<SeedType::RunSeed>(totalIdx, width, seed, ctr, results)) {
 				return;
 			}
 		}
@@ -293,11 +277,11 @@ cudaError_t testSeedsWithCuda(TestInfo info, uint64* results)
 
 	switch (info.fnc) {
 	case FunctionType::PANDORA_71_8:
-		pandoraSeedKernelFast<71, 8> <<<info.blocks, info.threads >>> (info, dev_results);
+		pandoraSeedKernel<71, 6> <<<info.blocks, info.threads >>> (info, dev_results);
 		break;
 
 	case FunctionType::PANDORA_72_8:
-		pandoraSeedKernelFast<72, 8> <<<info.blocks, info.threads >>> (info, dev_results);
+		pandoraSeedKernel<72, 8> <<<info.blocks, info.threads >>> (info, dev_results);
 		break;
 
 	case FunctionType::BAD_SILENT:
@@ -305,7 +289,7 @@ cudaError_t testSeedsWithCuda(TestInfo info, uint64* results)
 		break;
 
 	case FunctionType::BAD_WATCHER:
-		badWatcherKernel<3> <<<info.blocks, info.threads >>> (info, dev_results);
+		badWatcherKernel<2> <<<info.blocks, info.threads >>> (info, dev_results);
 		break;
 
 	case FunctionType::BAD_IRONCLAD:
