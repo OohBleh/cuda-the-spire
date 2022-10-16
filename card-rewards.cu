@@ -145,139 +145,125 @@ __forceinline__ __device__ bool getsBadWatcherCards(const uint64 seed) {
 	
 	return getsBadWatcherCards<nCardRewards>(seed0, seed1);
 }
-	
+
+constexpr uint8 commonRollFloor = 35;
+constexpr int8 rareRollCeiling = -3;
+
+template<uint8 nCommons, uint8 nUncommons>
+__forceinline__ __device__ uint8 getCommonOrUncommon(const bool isUncommon, uint64& seed0, uint64& seed1) {
+	return isUncommon ? random64Fast<nCommons>(seed0, seed1) : random64Fast<nUncommons>(seed0, seed1) + nCommons;
+}
+
+enum class CardRarity {
+	Common = 0, Uncommon = 1, Rare = 2
+};
+
+__forceinline__ __device__ CardRarity getCardRarity(uint8& nCommonsSeen, uint64& seed0, uint64& seed1) {
+	int8 adjustedRoll = static_cast<int8>(random64Fast<100>(seed0, seed1)) - static_cast<int8>(nCommonsSeen);
+	if (adjustedRoll >= commonRollFloor) {
+		nCommonsSeen++;
+		return CardRarity::Common;
+	}
+	else if (adjustedRoll > rareRollCeiling) {
+		return CardRarity::Uncommon;
+	}
+	nCommonsSeen = 0;
+	return CardRarity::Rare;
+}
+
+template<uint8 nCommons, uint8 nUncommons, uint8 nRares>
+__forceinline__ __device__ uint8 getRandomCard(const CardRarity rarity, uint64& seed0, uint64& seed1) {
+	switch (rarity)
+	{
+	case CardRarity::Common:
+		return random64Fast<nCommons>(seed0, seed1);
+		break;
+
+	case CardRarity::Uncommon:
+		return random64Fast<nUncommons>(seed0, seed1) + nCommons;
+		break;
+
+	case CardRarity::Rare:
+		return random64Fast<nRares>(seed0, seed1) + nCommons + nUncommons;
+		break;
+	default:
+		break;
+	}
+}
+
 template<uint8 nCardRewards>
 __forceinline__ __device__ bool getsBadWatcherCards(uint64 seed0, uint64 seed1) {
 
-	constexpr bool isBad[71] = { false,false,false,true,false,false,true,false,false,false,true,false,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,true,false,false,true,true,false,false,false,true,false,false,true,true,true,false,false,true,false,false,false,false,true,true,true,true,false,false,false,false,false,false,false,true,true,false,true,false,true, };
+	constexpr bool isBad[71] = { 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	
 	constexpr uint8 nCommons = 19;
 	constexpr uint8 nUncommons = 35;
 	constexpr uint8 nRares = 17;
 
-	constexpr uint8 nCommonsAndUncommons = 54;
-	constexpr uint16 lcmOfUncommonsAndRares = 595;
-
-	//int8 adj = 5;
-
-
 	//first card
-	int8 roll = random64Fast<100>(seed0, seed1);
-	bool is_common = (roll >= 35);
-
-	uint16 card1 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : (random64Fast<nUncommons>(seed0, seed1) + nCommons);
+	bool isCommon = random64Fast<100>(seed0, seed1) >= commonRollFloor;
+	uint8 card1 = getCommonOrUncommon<nCommons, nUncommons>(isCommon, seed0, seed1);
 
 	if (!isBad[card1]) {
 		return false;
 	}
 
-	int8 adj = (is_common) ? (4) : (5);
-
+	uint8 nCommonsSeen = static_cast<uint8>(isCommon);
+	
 	//second card
-	roll = random64Fast<100>(seed0, seed1) + adj;
-	is_common = (roll >= 40);
+	isCommon = random64Fast<100>(seed0, seed1) >= commonRollFloor + nCommonsSeen;
 
-	uint16 card2;
+	uint8 card2;
 	do {
-		card2 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : (random64Fast<nUncommons>(seed0, seed1) + nCommons);
-
+		card2 = getCommonOrUncommon<nCommons, nUncommons>(isCommon, seed0, seed1);
 		if (!isBad[card2]) {
 			return false;
 		}
 	} while (card2 == card1);
-
-	adj = (is_common) ? (adj - 1) : adj;
+	nCommonsSeen += static_cast<uint8>(isCommon);
 
 	//third card
-	roll = random64Fast<100>(seed0, seed1) + adj;
-	is_common = (roll >= 40);
+	isCommon = random64Fast<100>(seed0, seed1) >= commonRollFloor + nCommonsSeen;
 
-	uint16 card3;
+	uint8 card3;
 	do {
-		card3 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : (random64Fast<nUncommons>(seed0, seed1) + nCommons);
-
+		card3 = getCommonOrUncommon<nCommons, nUncommons>(isCommon, seed0, seed1);
 		if (!isBad[card3]) {
 			return false;
 		}
 	} while ((card3 == card1) || (card3 == card2));
 
-	adj = (is_common) ? (adj - 1) : adj;
+	// roll for upgrades (0%)
+	randomLong(seed0, seed1);
+	randomLong(seed0, seed1);
+	randomLong(seed0, seed1);
 
-	random64Fast<2>(seed0, seed1);
-	random64Fast<2>(seed0, seed1);
-	random64Fast<2>(seed0, seed1);
-
-	for (uint8 i = 2; i <= nCardRewards; i++) {
-
-		//first card
-		roll = random64Fast<100>(seed0, seed1) + adj;
-		bool is_rare = (roll < 3);
-		is_common = (roll >= 40);
-		bool is_uncommon = (!is_rare) && (!is_common);
-
-		uint16 card1 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : random64Fast<lcmOfUncommonsAndRares>(seed0, seed1);
-		card1 = (is_rare) ? ((card1 % nRares) + nCommonsAndUncommons) : card1;
-		card1 = (is_uncommon) ? ((card1 % nUncommons) + nCommons) : card1;
-
+	for (uint8 i = 1; i < nCardRewards; i++) {
+		CardRarity rarity = getCardRarity(nCommonsSeen, seed0, seed1);
+		card1 = getRandomCard<nCommons, nUncommons, nRares>(rarity, seed0, seed1);
 		if (!isBad[card1]) {
 			return false;
 		}
 
-		bool foundrare = is_rare;
-		adj = (is_common) ? (adj - 1) : adj;
-		adj = (is_rare) ? 5 : adj;
-
-		//second card
-		roll = random64Fast<100>(seed0, seed1) + adj;
-		is_rare = (roll < 3);
-		is_common = (roll >= 40);
-		is_uncommon = (!is_rare) && (!is_common);
-
-		card2;
+		rarity = getCardRarity(nCommonsSeen, seed0, seed1);
 		do {
-			card2 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : random64Fast<lcmOfUncommonsAndRares>(seed0, seed1);
-			card2 = (is_rare) ? ((card2 % nRares) + nCommonsAndUncommons) : card2;
-			card2 = (is_uncommon) ? ((card2 % nUncommons) + nCommons) : card2;
-
+			card2 = getRandomCard<nCommons, nUncommons, nRares>(rarity, seed0, seed1);
 			if (!isBad[card2]) {
 				return false;
 			}
 		} while (card2 == card1);
 
-		foundrare |= (is_rare);
-		adj = (is_common) ? (adj - 1) : adj;
-		adj = (is_rare) ? 5 : adj;
-
-		//third card
-		roll = random64Fast<100>(seed0, seed1) + adj;
-		is_rare = (roll < 3);
-		is_common = (roll >= 40);
-		is_uncommon = (!is_rare) && (!is_common);
-
-		card3;
+		rarity = getCardRarity(nCommonsSeen, seed0, seed1);
 		do {
-			card3 = (is_common) ? random64Fast<nCommons>(seed0, seed1) : random64Fast<lcmOfUncommonsAndRares>(seed0, seed1);
-			card3 = (is_rare) ? ((card3 % nRares) + nCommonsAndUncommons) : card3;
-			card3 = (is_uncommon) ? ((card3 % nUncommons) + nCommons) : card3;
-
+			card3 = getRandomCard<nCommons, nUncommons, nRares>(rarity, seed0, seed1);
 			if (!isBad[card3]) {
 				return false;
 			}
-		} while ((card3 == card1) || (card3 == card2));
+		} while (card3 == card2 || card3 == card1);
 
-		foundrare |= (is_rare);
-		adj = (is_common) ? (adj - 1) : adj;
-		adj = (is_rare) ? 5 : adj;
-
-		if (foundrare) {
-			random64Fast<2>(seed0, seed1);
-			random64Fast<2>(seed0, seed1);
-		}
-		else {
-			random64Fast<2>(seed0, seed1);
-			random64Fast<2>(seed0, seed1);
-			random64Fast<2>(seed0, seed1);
-		}
+		randomLong(seed0, seed1);
+		randomLong(seed0, seed1);
+		randomLong(seed0, seed1);
 	}
 
 	return true;

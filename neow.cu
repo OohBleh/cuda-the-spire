@@ -21,7 +21,7 @@ __forceinline__ __device__ bool neowsLament(const uint64 seed) {
 }
 
 template<uint8 nCardRewards>
-__forceinline__ __device__ bool testBadNeow1(const uint64 seed) {
+__forceinline__ __device__ bool getsBadNeowOptions1(const uint64 seed) {
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
 
@@ -73,7 +73,7 @@ __forceinline__ __device__ bool testBadNeow1(const uint64 seed) {
 	return true;
 }
 
-__forceinline__ __device__ bool testBadNeow2(const uint64 seed) {
+__forceinline__ __device__ bool getsBadNeowOptions2(const uint64 seed) {
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);
 

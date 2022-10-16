@@ -30,7 +30,7 @@ template<uint8 nCardRewards>
 __global__ void badSilentKernel(TestInfo info, uint64* results) {
 	
 	auto filter = [=](uint64 seed) {
-		if (!testBadNeow1<nCardRewards>(seed)) {
+		if (!getsBadNeowOptions1<nCardRewards>(seed)) {
 			return true;
 		}
 		if (!testBadSilentCardsFast<nCardRewards>(seed)) {
@@ -45,7 +45,7 @@ template<uint8 nCardRewards>
 __global__ void badWatcherKernel(TestInfo info, uint64* results) {
 	
 	auto filter = [=](uint64 seed) {
-		if (!testBadNeow2(seed)) {
+		if (!getsBadNeowOptions2(seed)) {
 			return true;
 		}
 		if (!getsBadWatcherCards<nCardRewards, SeedType::RunSeed>(seed)) {
@@ -63,7 +63,7 @@ __global__ void badWatcherKernel(TestInfo info, uint64* results) {
 template<uint8 nCardRewards>
 __global__ void badIroncladKernel(TestInfo info, uint64* results) {
 	auto filter = [=](uint64 seed) {
-		if (!testBadNeow1<nCardRewards>(seed)) {
+		if (!getsBadNeowOptions1<nCardRewards>(seed)) {
 			return true;
 		}
 		if (!testBadIroncladCardsFast<nCardRewards>(seed)) {

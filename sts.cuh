@@ -72,11 +72,11 @@ cudaError_t testSeedsWithCuda(TestInfo info, uint64* results);
 
 // ************************************************************** BEGIN Utility Function(s)
 
-enum class SeedType {		//the seed that a device handles is a...
-	RunSeed,				//seed that initializes a run, or a 
-	HashedRunSeed,			//hashed run seed, or a
-	Act1MapSeed,			//seed for the Act 1 map (run seed + 1), or a
-	HashedAct1MapSeed		//hashed Act 1 map seed
+enum class SeedType {		// the seed that a device handles is a...
+	RunSeed,				// seed that initializes a run, OR a 
+	HashedRunSeed,			// hashed run seed, OR a
+	OffsetSeed,				// seed for the Act 1 map (run seed + 1) or floor 1 Snecko RNG, OR a
+	HashedOffsetSeed		// hashed Act 1 map seed
 };
 
 template <SeedType seedType>
@@ -89,10 +89,10 @@ __forceinline__ __device__ bool writeResults(const unsigned int totalIdx, const 
 	case SeedType::HashedRunSeed:
 		results[width * totalIdx + ctr] = inverseHash(seed);
 		break;
-	case SeedType::Act1MapSeed:
+	case SeedType::OffsetSeed:
 		results[width * totalIdx + ctr] = seed - 1;
 		break;
-	case SeedType::HashedAct1MapSeed:
+	case SeedType::HashedOffsetSeed:
 		results[width * totalIdx + ctr] = inverseHash(seed) - 1;
 		break;
 	default:
