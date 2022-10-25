@@ -45,7 +45,7 @@ template<uint8 nCardRewards>
 __global__ void badWatcherKernel(TestInfo info, uint64* results) {
 	
 	auto filter = [=](uint64 seed) {
-		if (!getsBadNeowOptions2(seed)) {
+		if (!getsBadNeowOptions2< SeedType::RunSeed>(seed)) {
 			return true;
 		}
 		if (!getsBadWatcherCards<nCardRewards, SeedType::RunSeed>(seed)) {
@@ -289,7 +289,7 @@ cudaError_t testSeedsWithCuda(TestInfo info, uint64* results)
 		break;
 
 	case FunctionType::BAD_WATCHER:
-		badWatcherKernel<2> <<<info.blocks, info.threads >>> (info, dev_results);
+		badWatcherKernel<3> <<<info.blocks, info.threads >>> (info, dev_results);
 		break;
 
 	case FunctionType::BAD_IRONCLAD:

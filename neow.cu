@@ -73,6 +73,7 @@ __forceinline__ __device__ bool getsBadNeowOptions1(const uint64 seed) {
 	return true;
 }
 
+template<SeedType seedType>
 __forceinline__ __device__ bool getsBadNeowOptions2(const uint64 seed) {
 	uint64 seed0 = murmurHash3(seed);
 	uint64 seed1 = murmurHash3(seed0);

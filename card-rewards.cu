@@ -194,7 +194,7 @@ __forceinline__ __device__ uint8 getRandomCard(const CardRarity rarity, uint64& 
 template<uint8 nCardRewards>
 __forceinline__ __device__ bool getsBadWatcherCards(uint64 seed0, uint64 seed1) {
 
-	constexpr bool isBad[71] = { 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	constexpr bool isBad[71] = { 0,0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,1,1,0,0,0,1,0,0,1,1,1,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,1,1,0,1,0,1, };
 	
 	constexpr uint8 nCommons = 19;
 	constexpr uint8 nUncommons = 35;
