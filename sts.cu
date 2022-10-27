@@ -18,6 +18,18 @@ __global__ void pandoraSeedKernel(TestInfo info, uint64* results) {
 	return kernel<SeedType::HashedRunSeed>(info, results, [](uint64 seed) {return !testPandoraSeedFast<n, limit>(seed); });
 }
 
+__global__ void badSneckoKernel(TestInfo info, uint64* results) {
+	return kernel<SeedType::OffsetSeed>(info, results, [](uint64 seed) {
+		SeedPair seedPair = SeedPair(seed);
+		for (int i = 0; i < 42; i++) {
+			if (seedPair.next64Fast<4>() < 2) {
+				return true;
+			}
+		}
+		return false;
+	});
+}
+
 __global__ void zyzzKernel(TestInfo info, uint64* results) {
 	return kernel<SeedType::RunSeed>(info, results, [](uint64 seed) {return zyzzTest(seed); });
 }
@@ -324,6 +336,9 @@ cudaError_t testSeedsWithCuda(TestInfo info, uint64* results)
 	case FunctionType::BOTTLENECK:
 		bottleneckKernel <<<info.blocks, info.threads >>> (info, dev_results);
 		break;
+
+	case FunctionType::BAD_SNECKO:
+		badSneckoKernel << <info.blocks, info.threads >> > (info, dev_results);
 
 	default:
 		break;

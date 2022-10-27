@@ -3,7 +3,33 @@
 
 // ************************************************************** BEGIN LIBGDX Functions
 
-template<SeedType inSeedType, SeedType outSeedType>
+__forceinline__ __device__ uint64 murmurHash3(uint64 x) {
+
+	constexpr uint64 A1 = static_cast<uint64>(-49064778989728563LL);
+	constexpr uint64 A2 = static_cast<uint64>(-4265267296055464877LL);
+
+	x ^= x >> 33;
+	x *= A1;
+	x ^= x >> 33;
+	x *= A2;
+	x ^= x >> 33;
+	return x;
+}
+__forceinline__ __device__ uint64 inverseHash(uint64 x) {
+
+	constexpr uint64 B1 = 5725274745694666757Ui64;
+	constexpr uint64 B2 = 11291846944257947611Ui64;
+
+	x ^= x >> 33;
+	x *= B2;
+	x ^= x >> 33;
+	x *= B1;
+	x ^= x >> 33;
+	return x;
+}
+
+
+
 class SeedPair {
 private:
 	template <bool skipLastLine>
@@ -24,7 +50,8 @@ public:
 
 	__device__ SeedPair(const uint64 seed0, const uint64 seed1)
 		: seed0(seed0), seed1(seed1) {}
-	__device__ SeedPair(const uint64 seed) {
+	__device__ SeedPair(uint64 seed, 
+		const SeedType inSeedType = SeedType::RunSeed, const SeedType outSeedType = SeedType::RunSeed) {
 		
 		// main cases where efficiency can matter
 		if (inSeedType == outSeedType) {
@@ -101,31 +128,6 @@ public:
 	}
 };
 
-__forceinline__ __device__ uint64 murmurHash3(uint64 x) {
-
-	constexpr uint64 A1 = static_cast<uint64>(-49064778989728563LL);
-	constexpr uint64 A2 = static_cast<uint64>(-4265267296055464877LL);
-
-	x ^= x >> 33;
-	x *= A1;
-	x ^= x >> 33;
-	x *= A2;
-	x ^= x >> 33;
-	return x;
-}
-
-__forceinline__ __device__ uint64 inverseHash(uint64 x) {
-
-	constexpr uint64 B1 = 5725274745694666757Ui64;
-	constexpr uint64 B2 = 11291846944257947611Ui64;
-
-	x ^= x >> 33;
-	x *= B2;
-	x ^= x >> 33;
-	x *= B1;
-	x ^= x >> 33;
-	return x;
-}
 
 template<uint16 n>
 __forceinline__ __device__ uint64 random64(uint64& seed0, uint64& seed1) {

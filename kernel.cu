@@ -92,7 +92,7 @@ int runSeedSearch(TestInfo info, const char* filename
 				
 				outStream << results[i] << endl;
 
-				if (info.verbosity && nPrints < 20) {
+				if (info.verbosity == 1 || (info.verbosity == 2 && nPrints < 20)) {
 					cout << getString(results[i]) << endl;
 					nPrints++;
 				}
@@ -138,7 +138,7 @@ int main(int argc, const char* argv[])
 
 	cout << endl;
 
-	TestInfo info = TestInfo(PARAMS, FunctionType::BAD_WATCHER);
+	TestInfo info = TestInfo(PARAMS, FunctionType::BAD_SNECKO);
 	string fName = "results/out-" + std::to_string(time(NULL)) + ".txt";
 	return runSeedSearch(info, fName.c_str());
 

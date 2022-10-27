@@ -36,7 +36,8 @@ enum class FunctionType {
 	ZYZZ,
 	SILENT_TAS, 
 	IRONCLAD_TAS, 
-	BOTTLENECK
+	BOTTLENECK,
+	BAD_SNECKO
 };
 
 struct TestInfo {
