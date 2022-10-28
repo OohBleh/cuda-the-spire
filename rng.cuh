@@ -48,8 +48,8 @@ private:
 public:
 	uint64 seed0, seed1;
 
-	__device__ SeedPair(const uint64 seed0, const uint64 seed1)
-		: seed0(seed0), seed1(seed1) {}
+	/*__device__ SeedPair(const uint64 seed0, const uint64 seed1)
+		: seed0(seed0), seed1(seed1) {}*/
 	__device__ SeedPair(const uint64 seed, const bool oneHash) {
 		
 		/*if (true) {
@@ -59,7 +59,7 @@ public:
 
 		else*/ if (oneHash) {
 			seed0 = seed;
-			seed1 = murmurHash3(seed1);
+			seed1 = murmurHash3(seed0);
 		}
 
 		else {

@@ -27,14 +27,14 @@ __global__ void zyzzKernel(TestInfo info, uint64* results) {
 // ************************************************************** BEGIN Unwinnable Kernels
 
 __global__ void badSneckoKernel(TestInfo info, uint64* results) {
-	return kernel<SeedType::OffsetSeed>(info, results, [](uint64 seed) {
-		SeedPair seedPair = SeedPair(seed, false);
-		for (int i = 0; i < 42; i++) {
+	return kernel<SeedType::HashedOffsetSeed>(info, results, [](uint64 seed) {
+		SeedPair seedPair = SeedPair(seed, true);
+		for (int i = 0; i < 49; i++) {
 			if ((seedPair.nextLong() & 4) == 0) {
 				return true;
 			}
 		}
-		seedPair = SeedPair(seed - 1, false);
+		seedPair = SeedPair(inverseHash(seed) - 1, false);
 		if (seedPair.nextFloatFast() > 0.25f) {
 			return true;
 		}
