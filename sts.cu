@@ -18,18 +18,6 @@ __global__ void pandoraSeedKernel(TestInfo info, uint64* results) {
 	return kernel<SeedType::HashedRunSeed>(info, results, [](uint64 seed) {return !testPandoraSeedFast<n, limit>(seed); });
 }
 
-__global__ void badSneckoKernel(TestInfo info, uint64* results) {
-	return kernel<SeedType::OffsetSeed>(info, results, [](uint64 seed) {
-		SeedPair seedPair = SeedPair(seed);
-		for (int i = 0; i < 42; i++) {
-			if (seedPair.next64Fast<4>() < 2) {
-				return true;
-			}
-		}
-		return false;
-	});
-}
-
 __global__ void zyzzKernel(TestInfo info, uint64* results) {
 	return kernel<SeedType::RunSeed>(info, results, [](uint64 seed) {return zyzzTest(seed); });
 }
@@ -37,6 +25,22 @@ __global__ void zyzzKernel(TestInfo info, uint64* results) {
 // ************************************************************** END PBox Kernel(s)
 
 // ************************************************************** BEGIN Unwinnable Kernels
+
+__global__ void badSneckoKernel(TestInfo info, uint64* results) {
+	return kernel<SeedType::OffsetSeed>(info, results, [](uint64 seed) {
+		SeedPair seedPair = SeedPair(seed, false);
+		for (int i = 0; i < 42; i++) {
+			if ((seedPair.nextLong() & 4) == 0) {
+				return true;
+			}
+		}
+		seedPair = SeedPair(seed - 1, false);
+		if (seedPair.nextFloatFast() > 0.25f) {
+			return true;
+		}
+		return false;
+		});
+}
 
 template<uint8 nCardRewards>
 __global__ void badSilentKernel(TestInfo info, uint64* results) {

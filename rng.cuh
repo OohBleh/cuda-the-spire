@@ -50,61 +50,25 @@ public:
 
 	__device__ SeedPair(const uint64 seed0, const uint64 seed1)
 		: seed0(seed0), seed1(seed1) {}
-	__device__ SeedPair(uint64 seed, 
-		const SeedType inSeedType = SeedType::RunSeed, const SeedType outSeedType = SeedType::RunSeed) {
+	__device__ SeedPair(const uint64 seed, const bool oneHash) {
 		
-		// main cases where efficiency can matter
-		if (inSeedType == outSeedType) {
+		/*if (true) {
+			seed0 = murmurHash3(seed);
+			seed1 = murmurHash3(seed0);
+		}
+
+		else*/ if (oneHash) {
+			seed0 = seed;
+			seed1 = murmurHash3(seed1);
+		}
+
+		else {
+			/*seed0 = murmurHash3(seed);
+			seed1 = murmurHash3(seed0);*/
+
 			seed0 = truncatedMurmurHash3<true>(seed);		// murmurHash3(seed);
 			seed1 = truncatedMurmurHash3<false>(seed0);		// murmurHash3(seed0);
 			seed0 ^= seed0 >> 33;
-		}
-		else if (inSeedType == SeedType::RunSeed && outSeedType == SeedType::OffsetSeed) {
-			seed0 = truncatedMurmurHash3<true>(seed + 1);	// murmurHash3(seed);
-			seed1 = truncatedMurmurHash3<false>(seed0);		// murmurHash3(seed0);
-			seed0 ^= seed0 >> 33;
-		}
-		else if (inSeedType == SeedType::OffsetSeed && outSeedType == SeedType::RunSeed) {
-			seed0 = truncatedMurmurHash3<true>(seed - 1);	// murmurHash3(seed);
-			seed1 = truncatedMurmurHash3<false>(seed0);		// murmurHash3(seed0);
-			seed0 ^= seed0 >> 33;
-		}
-
-		// obscure cases
-		else {
-			switch (inSeedType){
-			case SeedType::RunSeed:
-				break;
-			case SeedType::HashedRunSeed:
-				seed = inverseHash(seed);
-				break;
-			case SeedType::OffsetSeed:
-				seed -= 1;
-				break;
-			case SeedType::HashedOffsetSeed:
-				seed = inverseHash(seed) - 1;
-				break;
-			default:
-				break;
-			}
-
-			switch (outSeedType){
-			case SeedType::RunSeed:
-				seed0 = murmurHash3(seed);
-				break;
-			case SeedType::HashedRunSeed:
-				// meaningless
-				break;
-			case SeedType::OffsetSeed:
-				seed0 = murmurHash3(seed + 1);
-				break;
-			case SeedType::HashedOffsetSeed:
-				// meaningless
-				break;
-			default:
-				break;
-			}
-			seed1 = murmurHash3(seed0);
 		}
 	}
 	__forceinline__ __device__ void next() {
@@ -116,18 +80,23 @@ public:
 		return;
 	}
 	__forceinline__ __device__ uint64 currentLong() const { return seed0 + seed1; }
+	__forceinline__ __device__ uint64 nextLong() { next(); return seed0 + seed1; }
 	template<uint64 n>
 	__forceinline__ __device__ uint64 current64Fast() const {
 		const uint64 bits = currentLong() >> 1;
 		return bits % n;
 	}
 	template<uint64 n>
-	__forceinline__ __device__ uint64 next64Fast() {
-		next();
-		return current64Fast<n>();
-	}
-};
+	__forceinline__ __device__ uint64 next64Fast() { next(); return current64Fast<n>();	}
 
+	__forceinline__ __device__ float currentFloatFast() const {
+		static constexpr double NORM_FLOAT = 5.9604644775390625E-8;
+		uint64 x = (seed0 + seed1) >> 40;
+		double d = static_cast<double>(x) * NORM_FLOAT;
+		return static_cast<float>(d);
+	}
+	__forceinline__ __device__ float nextFloatFast() { next(); return currentFloatFast(); }
+};
 
 template<uint16 n>
 __forceinline__ __device__ uint64 random64(uint64& seed0, uint64& seed1) {

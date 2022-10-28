@@ -92,7 +92,7 @@ int runSeedSearch(TestInfo info, const char* filename
 				
 				outStream << results[i] << endl;
 
-				if (info.verbosity == 1 || (info.verbosity == 2 && nPrints < 20)) {
+				if (info.verbosity > 0 && nPrints < 20) {
 					cout << getString(results[i]) << endl;
 					nPrints++;
 				}
