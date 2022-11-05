@@ -1,3 +1,4 @@
+#pragma once
 #include "rng.cuh"
 
 __forceinline__ __device__ bool shardFirst2(const uint64 seed) {

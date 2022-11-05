@@ -1,4 +1,4 @@
-
+#pragma once
 #include "rng.cuh"
 
 __forceinline__ __device__ bool testSneck0andSpecializedRB(const uint64 seed) {

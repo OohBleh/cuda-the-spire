@@ -1,3 +1,4 @@
+#pragma once
 #include "rng.cuh"
 
 // ************************************************************** BEGIN Fast Map Functions

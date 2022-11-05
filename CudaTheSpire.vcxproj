@@ -11,16 +11,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="card-rewards.cu" />
-    <CudaCompile Include="custom.cu" />
+    <CudaCompile Include="card-rewards.cuh" />
+    <CudaCompile Include="custom.cuh" />
     <CudaCompile Include="kernel.cu" />
-    <CudaCompile Include="map.cu" />
-    <CudaCompile Include="neow.cu" />
-    <CudaCompile Include="pbox.cu" />
-    <CudaCompile Include="qnodes.cu" />
-    <CudaCompile Include="shard.cu" />
+    <CudaCompile Include="map.cuh" />
+    <CudaCompile Include="neow.cuh" />
+    <CudaCompile Include="pbox.cuh" />
+    <CudaCompile Include="qnodes.cuh" />
+    <CudaCompile Include="shard.cuh" />
     <CudaCompile Include="sts.cu" />
-    <CudaCompile Include="tas.cu" />
+    <CudaCompile Include="tas.cuh" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="OPTIONS.txt" />

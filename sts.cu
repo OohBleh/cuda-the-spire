@@ -2,14 +2,14 @@
 using std::cout;
 using std::endl;
 
-#include "map.cu"
-#include "neow.cu"
-#include "pbox.cu"
-#include "card-rewards.cu"
-#include "qnodes.cu"
-#include "custom.cu"
-#include "shard.cu"
-#include "tas.cu"
+#include "map.cuh"
+#include "neow.cuh"
+#include "pbox.cuh"
+#include "card-rewards.cuh"
+#include "qnodes.cuh"
+#include "custom.cuh"
+#include "shard.cuh"
+#include "tas.cuh"
 
 // ************************************************************** BEGIN PBox Kernel(s)
 
