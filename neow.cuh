@@ -73,11 +73,7 @@ __forceinline__ __device__ bool getsBadNeowOptions1(const uint64 seed) {
 	return true;
 }
 
-template<SeedType seedType>
-__forceinline__ __device__ bool getsBadNeowOptions2(const uint64 seed) {
-	uint64 seed0 = murmurHash3(seed);
-	uint64 seed1 = murmurHash3(seed0);
-
+__forceinline__ __device__ bool getsBadNeowOptions2(uint64 seed0, uint64 seed1) {
 	/*
 		[ ] 0 THREE_CARDS = 0,
 		[ ] 1 ONE_RANDOM_RARE_CARD,
@@ -109,43 +105,22 @@ __forceinline__ __device__ bool getsBadNeowOptions2(const uint64 seed) {
 		return false;
 	}
 
-	/*										[ ]			[ ]			[x]			[x]
+	/*										[+]			[+]			[ ]			[+]
 										0 HP_LOSS	1 NO_GOLD	2 CURSE		3 DAMAGE
 		[ ] RANDOM_COLORLESS_2,				0			0			0			0
-		[ ] REMOVE_TWO,						1			1			=====		1
-		[ ] ONE_RARE_RELIC,					2			2			1			2
+		[ ] REMOVE_TWO,						[1]			[1]			=====		[1]
+		[+] ONE_RARE_RELIC,					[2]			[2]			[1]			[2]
 		[ ] THREE_RARE_CARDS,				3			3			2			3
-		[x] TWO_FIFTY_GOLD,					[4]			=====		[3]			[4]
+		[+] TWO_FIFTY_GOLD,					[4]			=====		[3]			[4]
 		[ ] TRANSFORM_TWO_CARDS,			5			4			4			5
-		[x] TWENTY_PERCENT_HP_BONUS,		=====		[5]			[5]			[6]
-
-		k = 0 (l ~ Unif(6)): false, false, false, false, true, false,
-			{false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, }
-		k = 1 (l ~ Unif(6)): false, false, false, false, false, true,
-			{false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, }
-		k = 2 (l ~ Unif(6)): false, false, false, true, false, true,
-			{false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, }
-		k = 3 (l ~ Unif(7)): false, false, false, false, true, false, true,
-			{false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, }
+		[+] TWENTY_PERCENT_HP_BONUS,		=====		[5]			[5]			[6]
 	*/
 
-	/*
-	uint8 k = random64Fast<4>(seed0, seed1);
-	uint8 l = (k == 3) ? random64Fast<7>(seed0, seed1) : random64Fast<6>(seed0, seed1);
-	l = (k == 1) ? (l - 1) : l;
-	l = (k == 2) ? (l + 1) : l;
-	return (l == 4) || (l == 6);
-	*/
-
-
-	static constexpr bool BAD_NEOW4[4][42] = {
-		{false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, },
-		{false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, true, },
-		{false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, false, false, false, true, false, true, },
-		{false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, false, false, false, false, true, false, true, }
-	};
-	//uint8 k = random64Fast<4>(seed0, seed1);
-	//uint8 l = random64Fast<42>(seed0, seed1);
+	constexpr bool BAD_NEOW4[4][42] = {
+		0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0,
+		0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, };
 
 	return BAD_NEOW4[
 		random8Fast<4>(seed0, seed1)
@@ -154,4 +129,11 @@ __forceinline__ __device__ bool getsBadNeowOptions2(const uint64 seed) {
 	];
 
 }
+
+__forceinline__ __device__ bool getsBadNeowOptions2(const uint64 seed) {
+	uint64 seed0 = murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+	return getsBadNeowOptions2(seed0, seed1);
+}
+
 // ************************************************************** END Neow Functions

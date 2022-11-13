@@ -61,19 +61,20 @@ template<uint8 nCardRewards>
 __global__ void badWatcherKernel(TestInfo info, uint64* results) {
 	
 	auto filter = [=](uint64 seed) {
-		if (!getsBadNeowOptions2< SeedType::RunSeed>(seed)) {
+		const uint64 seed1 = murmurHash3(seed);
+		if (!getsBadNeowOptions2(seed, seed1)) {
 			return true;
 		}
-		if (!getsBadWatcherCards<nCardRewards, SeedType::RunSeed>(seed)) {
+		if (!getsBadWatcherCards<nCardRewards>(seed, seed1)) {
 			return true;
 		}
-		if (!floor6Bottleneck(seed)) {
+		if (!floor6Bottleneck(inverseHash(seed))) {
 			return true;
 		}
 		return false;
 	};
 
-	return kernel<SeedType::RunSeed>(info, results, filter);
+	return kernel<SeedType::HashedRunSeed>(info, results, filter);
 }
 
 template<uint8 nCardRewards>

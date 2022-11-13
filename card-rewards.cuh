@@ -125,11 +125,6 @@ __forceinline__ __device__ bool testBadIroncladCardsFast(const uint64 seed) {
 	return true;
 }
 
-template<uint8 nCardRewards, SeedType inSeedType>
-__forceinline__ __device__ bool getsBadWatcherCards(SeedPair seedPair) {
-	return false;
-}
-
 template<uint8 nCardRewards, SeedType seedType>
 __forceinline__ __device__ bool getsBadWatcherCards(const uint64 seed) {
 
