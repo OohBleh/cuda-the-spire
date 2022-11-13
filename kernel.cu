@@ -76,7 +76,7 @@ int runSeedSearch(TestInfo info, const char* filename
 
 	while (true) {
 		time = getTime();
-		cout << time << " " << info.start << " " << info.end << " " << endl;
+		cout << time << "\t" << printWithCommas(info.start) << "\t" << printWithCommas(info.end) << " " << endl;
 
 		cudaStatus = testSeedsWithCuda(info, results.get());
 		if (cudaStatus != cudaSuccess) {
@@ -99,7 +99,7 @@ int runSeedSearch(TestInfo info, const char* filename
 			}
 		}
 
-		cout << '\t' << printWithCommas(foundThreads) << endl;
+		cout << '\t' << printWithCommas(foundThreads) << " seeds found so far..." << endl;
 		
 		info.incrementInterval();
 
