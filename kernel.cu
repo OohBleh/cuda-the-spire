@@ -138,7 +138,7 @@ int main(int argc, const char* argv[])
 
 	cout << endl;
 
-	TestInfo info = TestInfo(PARAMS, FunctionType::BAD_WATCHER);
+	TestInfo info = TestInfo(PARAMS, FunctionType::CUSTOM); // FunctionType::BAD_WATCHER);
 	string fName = "results/out-" + std::to_string(time(NULL)) + ".txt";
 	return runSeedSearch(info, fName.c_str());
 

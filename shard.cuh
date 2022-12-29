@@ -135,6 +135,54 @@ __forceinline__ __device__ bool startsPBox(const uint64 seed) {
 	return K < 3;
 }
 
+__forceinline__ __device__ bool startsGamblingChip(const uint64 seed) {
+
+	uint64 seed0 = seed; // murmurHash3(seed);
+	uint64 seed1 = murmurHash3(seed0);
+	
+	// common, uncommon
+	randomLong(seed0, seed1);
+	randomLong(seed0, seed1);
+
+	// rare
+	uint64 shuffleSeed = randomLong(seed0, seed1);
+
+
+	// scramble seed
+	shuffleSeed = (shuffleSeed ^ JAVA_MULTIPLIER) & JAVA_MASK;
+
+	int size = 28;
+	int GamblingChipIndex = 20;
+	for (int i = size; i > 1; i--) {
+
+		shuffleSeed = (shuffleSeed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
+		int r = static_cast<int32>(shuffleSeed >> (48 - 31));
+		int bound = i;
+		int m = bound - 1;
+		if ((bound & m) == 0)  // i.e., bound is a power of 2
+			r = static_cast<int32>(((bound * static_cast<uint64>(r)) >> 31));
+		else {
+			for (int32_t u = r; u - (r = u % bound) + m < 0; ) {
+				shuffleSeed = (shuffleSeed * JAVA_MULTIPLIER + JAVA_ADDEND) & JAVA_MASK;
+				u = static_cast<int32>(shuffleSeed >> (48 - 31));
+			}
+		}
+
+		if (20 == r) {
+			return false;
+		}
+
+		else if (GamblingChipIndex == r) {
+			GamblingChipIndex = i - 1;
+		}
+		else if (GamblingChipIndex == i - 1) {
+			GamblingChipIndex = r;
+		}
+	}
+
+	return GamblingChipIndex == 0;
+}
+
 
 __forceinline__ __device__ bool hyperbeamFirstShop(const uint64 seed) {
 

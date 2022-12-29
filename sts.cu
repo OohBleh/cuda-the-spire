@@ -136,19 +136,22 @@ __global__ void fastQNodeKernel(TestInfo info, uint64* results) {
 
 /*TODO: use kernel function*/
 __global__ void SealedRBKernel(TestInfo info, uint64* results) {
-	const unsigned int totalIdx = blockIdx.x * info.threads + threadIdx.x;
-	uint64 seed = info.start + static_cast<uint64>(totalIdx);
-
-	results[totalIdx] = false;
-	for (; seed < info.end; seed += info.blocks * info.threads)
-	{
-		if (testSneck0andSpecializedRB(seed)) {
-			if (testSealedRB(seed)) {
-				results[totalIdx] = seed;
-				return;
-			}
+	
+	auto filter = [=](uint64 seed) {
+		if (!testSneck0andSpecializedRB(seed)) {
+			return true;
 		}
-	}
+
+		if (!startsGamblingChip(seed)) {
+			return true;
+		}
+
+		if (!testSealedRB(seed)) {
+			return true;
+		}
+		return false;
+	};
+	return kernel<SeedType::HashedRunSeed>(info, results, filter);
 }
 
 /*TODO: use kernel function*/
