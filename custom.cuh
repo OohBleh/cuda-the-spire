@@ -34,7 +34,7 @@ __forceinline__ __device__ bool testSneck0andSpecializedRB(const uint64 seed) {
 	uint64 seed2 = murmurHash3(inverseHash(seed) + 1);
 	uint64 seed3 = murmurHash3(seed2);
 
-	for (uint8 i = 0; i < 4; i++) {
+	for (uint8 i = 0; i < 7; i++) {
 
 		/*
 		if (random8Fast<4>(seed2, seed3) == 0) {
