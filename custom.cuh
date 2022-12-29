@@ -30,10 +30,14 @@ __forceinline__ __device__ bool testSneck0andSpecializedRB(const uint64 seed) {
 	}
 
 
-	// 7 0-cost cards from Snecko Eye
+	/* 
+		checks that 7 Snecko'd card costs sum to <= 2 
+		this allows us to loop Skims, Fusion, Consume, Bomb
+	*/
 	uint64 seed2 = murmurHash3(inverseHash(seed) + 1);
 	uint64 seed3 = murmurHash3(seed2);
 
+	uint8 sneckoSum = 0;
 	for (uint8 i = 0; i < 7; i++) {
 
 		/*
@@ -41,7 +45,9 @@ __forceinline__ __device__ bool testSneck0andSpecializedRB(const uint64 seed) {
 			num0++;
 		}
 		*/
-		if (random8Fast<4>(seed2, seed3)) {
+
+		sneckoSum += random8Fast<4>(seed2, seed3);
+		if (sneckoSum > 2) {
 			return false;
 		}
 	}
